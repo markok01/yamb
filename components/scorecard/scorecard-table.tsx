@@ -14,6 +14,7 @@ import {
   type ScorecardRowKey,
 } from "@/lib/ui/labels";
 import { FILLABLE_ROWS_TOP_TO_BOTTOM } from "@/lib/yamb/constants";
+import { createEmptyDice } from "@/lib/yamb/dice";
 import { needsInlineScoreEntry } from "@/lib/ui/inline-score";
 import { CellInlineInput } from "./cell-inline-input";
 import { ScorecardMobile } from "./scorecard-mobile";
@@ -89,6 +90,10 @@ export interface ScorecardTableProps {
     rowKey: FillableRowKey,
     score: number
   ) => void;
+  onInlineScoreDelete?: (
+    columnType: ColumnType,
+    rowKey: FillableRowKey
+  ) => void;
   /** Otvori inline unos nakon async startTurn (fizički / R) */
   openInlineCell?: { columnType: ColumnType; rowKey: FillableRowKey } | null;
   onInlineCancel?: () => void;
@@ -114,7 +119,7 @@ export interface ScorecardTableProps {
   virtualRollFirst?: boolean;
   /** Puna širina ekrana — sve kolone vidljive */
   fullBleed?: boolean;
-  /** Ispravka postojećih unosa (fizičke kockice) */
+  /** Ispravka postojećih unosa */
   allowCorrection?: boolean;
   /** Predlozi, pulsirajuća polja i sistemski rezultat */
   showPlayHints?: boolean;
@@ -132,13 +137,14 @@ export function ScorecardTable(props: ScorecardTableProps) {
     submitMode,
     onCellClick,
     onInlineScoreSubmit,
+    onInlineScoreDelete,
     openInlineCell = null,
     onInlineCancel,
     isMyTurn = false,
     isMyActiveTurn = false,
     turn = null,
     rollCount = 0,
-    dice = [0, 0, 0, 0, 0] as ScorecardInteractionContext["dice"],
+    dice = createEmptyDice(),
     dojavaSuggestion = null,
     showDojava = false,
     dojavaRejected = false,
@@ -164,6 +170,7 @@ export function ScorecardTable(props: ScorecardTableProps) {
     columnType: ColumnType;
     rowKey: FillableRowKey;
     initialValue: string;
+    isCorrection?: boolean;
   } | null>(null);
 
   useEffect(() => {
@@ -183,6 +190,7 @@ export function ScorecardTable(props: ScorecardTableProps) {
         columnType: openInlineCell.columnType,
         rowKey: openInlineCell.rowKey,
         initialValue: entry !== undefined ? String(entry.score) : "",
+        isCorrection: entry !== undefined,
       };
     });
   }, [openInlineCell, scorecard.columns]);
@@ -246,6 +254,11 @@ export function ScorecardTable(props: ScorecardTableProps) {
     onInlineScoreSubmit?.(columnType, rowKey, score);
   }
 
+  function deleteInlineEdit(columnType: ColumnType, rowKey: FillableRowKey) {
+    flushSync(() => setEditingCell(null));
+    onInlineScoreDelete?.(columnType, rowKey);
+  }
+
   function shouldOpenInlineEditor(
     columnType: ColumnType,
     isFilled: boolean
@@ -256,10 +269,11 @@ export function ScorecardTable(props: ScorecardTableProps) {
   function openInlineEditorSync(
     columnType: ColumnType,
     rowKey: FillableRowKey,
-    initialValue = ""
+    initialValue = "",
+    isCorrection = false
   ) {
     flushSync(() => {
-      setEditingCell({ columnType, rowKey, initialValue });
+      setEditingCell({ columnType, rowKey, initialValue, isCorrection });
     });
   }
 
@@ -447,6 +461,8 @@ export function ScorecardTable(props: ScorecardTableProps) {
                 submitInlineEdit(col, row, value)
               }
               onInlineCancel={closeInlineEdit}
+              onInlineDelete={(col, row) => deleteInlineEdit(col, row)}
+              allowCorrection={allowCorrection}
               inlineSubmitting={inlineSubmitting}
               isLoading={isLoading}
             />
@@ -655,8 +671,14 @@ export function ScorecardTable(props: ScorecardTableProps) {
                             <CellInlineInput
                               key={`${col.columnType}-${row}`}
                               initialValue={editingCell.initialValue}
+                              showDelete={
+                                !!editingCell.isCorrection && !!allowCorrection
+                              }
                               onSubmit={(raw) =>
                                 submitInlineEdit(col.columnType, row, raw)
+                              }
+                              onDelete={() =>
+                                deleteInlineEdit(col.columnType, row)
                               }
                               onCancel={closeInlineEdit}
                               disabled={inlineSubmitting}

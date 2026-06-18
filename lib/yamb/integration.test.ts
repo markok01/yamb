@@ -9,18 +9,20 @@ import { calculateColumnTotal } from "./scoring";
 import { canFillCell, createEmptyScorecard } from "./columns";
 import { validateMaksimalnaScore } from "./validation";
 
+import type { Dice } from "./types";
+
 describe("integration", () => {
   it("completes full REDOVNA column flow with correct totals", () => {
     let state = createEngineState(createEmptyScorecard());
     const col = state.columns.find((c) => c.columnType === "REDOVNA")!;
 
-    const fills: Array<{ row: keyof typeof col.entries; dice: [number, number, number, number, number]; score: number }> = [
-      { row: "ROW_1", dice: [1, 1, 1, 2, 3], score: 3 },
-      { row: "ROW_2", dice: [2, 2, 2, 2, 2], score: 10 },
-      { row: "ROW_3", dice: [3, 3, 3, 1, 2], score: 9 },
-      { row: "ROW_4", dice: [4, 4, 4, 1, 1], score: 12 },
-      { row: "ROW_5", dice: [5, 5, 1, 2, 3], score: 10 },
-      { row: "ROW_6", dice: [6, 6, 1, 2, 3], score: 12 },
+    const fills: Array<{ row: keyof typeof col.entries; dice: Dice; score: number }> = [
+      { row: "ROW_1", dice: [1, 1, 1, 2, 3, 4], score: 3 },
+      { row: "ROW_2", dice: [2, 2, 2, 2, 2, 1], score: 10 },
+      { row: "ROW_3", dice: [3, 3, 3, 1, 2, 4], score: 9 },
+      { row: "ROW_4", dice: [4, 4, 4, 1, 1, 2], score: 12 },
+      { row: "ROW_5", dice: [5, 5, 1, 2, 3, 4], score: 10 },
+      { row: "ROW_6", dice: [6, 6, 1, 2, 3, 4], score: 12 },
     ];
 
     for (const fill of fills) {
@@ -55,7 +57,7 @@ describe("integration", () => {
     if (state.activeTurn) {
       state = {
         ...state,
-        activeTurn: { ...state.activeTurn, dice: [1, 1, 1, 1, 1], rollCount: 1 },
+        activeTurn: { ...state.activeTurn, dice: [1, 1, 1, 1, 1, 1], rollCount: 1 },
       };
     }
 
@@ -76,7 +78,7 @@ describe("integration", () => {
         ...state,
         activeTurn: {
           ...state.activeTurn,
-          dice: [1, 1, 1, 1, 1],
+          dice: [1, 1, 1, 1, 1, 2],
           rollCount: 1,
         },
       };

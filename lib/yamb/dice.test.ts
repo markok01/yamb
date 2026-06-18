@@ -4,6 +4,7 @@ import {
   createEmptyDice,
   createEmptyHeldDice,
   mustSubmitScore,
+  normalizeDice,
   rollDice,
   toggleHold,
 } from "./dice";
@@ -18,18 +19,21 @@ describe("dice", () => {
       return callCount;
     };
     const result = rollDice(dice, held, rng);
-    expect(result).toEqual([1, 2, 3, 4, 5]);
-    expect(callCount).toBe(5);
+    expect(result).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(callCount).toBe(6);
   });
 
   it("preserves held dice", () => {
-    const dice = [1, 2, 3, 4, 5] as const;
-    const held: [boolean, boolean, boolean, boolean, boolean] = [
+    const dice: [number, number, number, number, number, number] = [
+      1, 2, 3, 4, 5, 6,
+    ];
+    const held: [boolean, boolean, boolean, boolean, boolean, boolean] = [
       true,
       false,
       true,
       false,
       true,
+      false,
     ];
     let callCount = 0;
     const rng = () => ++callCount + 10;
@@ -39,13 +43,27 @@ describe("dice", () => {
     expect(result[4]).toBe(5);
     expect(result[1]).toBe(11);
     expect(result[3]).toBe(12);
+    expect(result[5]).toBe(13);
   });
 
   it("toggles hold", () => {
     const held = createEmptyHeldDice();
     const toggled = toggleHold(held, 2);
-    expect(toggled).toEqual([false, false, true, false, false]);
+    expect(toggled[2]).toBe(true);
     expect(toggleHold(toggled, 2)).toEqual(createEmptyHeldDice());
+  });
+
+  it("allows at most 5 held dice", () => {
+    let held = createEmptyHeldDice();
+    for (let i = 0; i < 5; i++) {
+      held = toggleHold(held, i);
+    }
+    expect(held.filter(Boolean).length).toBe(5);
+    expect(toggleHold(held, 5)).toEqual(held);
+  });
+
+  it("normalizes legacy 5-dice snapshots", () => {
+    expect(normalizeDice([1, 2, 3, 4, 5])).toEqual([1, 2, 3, 4, 5, 0]);
   });
 
   it("enforces max 3 rolls", () => {

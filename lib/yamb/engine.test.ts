@@ -38,13 +38,14 @@ describe("engine", () => {
     state = setHold(state, 0).state;
     state = setHold(state, 1).state;
 
-    const values = [3, 4, 5];
+    const values = [3, 4, 5, 2];
     let idx = 0;
     state = roll(state, () => values[idx++]).state;
 
     expect(state.activeTurn?.dice[0]).toBe(6);
     expect(state.activeTurn?.dice[1]).toBe(6);
     expect(state.activeTurn?.dice[2]).toBe(3);
+    expect(state.activeTurn?.dice[3]).toBe(4);
   });
 
   it("blocks second turn while one is active", () => {
@@ -72,7 +73,7 @@ describe("engine", () => {
         ...state,
         activeTurn: {
           ...state.activeTurn,
-          dice: [1, 2, 3, 4, 5],
+          dice: [1, 2, 3, 4, 5, 6],
           rollCount: 1,
         },
       };
@@ -85,9 +86,9 @@ describe("engine", () => {
 
   it("suggests best move in DOJAVA column", () => {
     const col = createEmptyColumn("DOJAVA");
-    const suggestion = getDojavaSuggestion(col, [6, 6, 6, 6, 1]);
+    const suggestion = getDojavaSuggestion(col, [6, 6, 6, 6, 1, 2]);
     expect(suggestion?.rowKey).toBe("POKER");
-    expect(suggestion?.score).toBe(25);
+    expect(suggestion?.score).toBe(26);
   });
 
   it("handles DOJAVA accept", () => {
@@ -103,7 +104,7 @@ describe("engine", () => {
         ...state,
         activeTurn: {
           ...state.activeTurn,
-          dice: [6, 6, 6, 6, 1],
+          dice: [6, 6, 6, 6, 1, 2],
           rollCount: 1,
         },
       };

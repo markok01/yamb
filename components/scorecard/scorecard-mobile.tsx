@@ -56,13 +56,17 @@ interface ScorecardMobileProps {
   editingCell?: {
     columnType: ColumnType;
     rowKey: FillableRowKey;
+    initialValue?: string;
+    isCorrection?: boolean;
   } | null;
   onInlineSubmit?: (
     columnType: ColumnType,
     rowKey: FillableRowKey,
     value: string
   ) => void;
+  onInlineDelete?: (columnType: ColumnType, rowKey: FillableRowKey) => void;
   onInlineCancel?: () => void;
+  allowCorrection?: boolean;
   inlineSubmitting?: boolean;
   isLoading?: boolean;
 }
@@ -75,7 +79,9 @@ export function ScorecardMobile({
   turn,
   editingCell,
   onInlineSubmit,
+  onInlineDelete,
   onInlineCancel,
+  allowCorrection = false,
   inlineSubmitting = false,
   isLoading,
 }: ScorecardMobileProps) {
@@ -146,7 +152,16 @@ export function ScorecardMobile({
                   >
                     <span className="flex-1 text-sm">{ROW_LABELS[row]}</span>
                     <CellInlineInput
+                      initialValue={editingCell?.initialValue}
+                      showDelete={
+                        !!editingCell?.isCorrection && !!allowCorrection
+                      }
                       onSubmit={(value) => onInlineSubmit(openCol, row, value)}
+                      onDelete={
+                        onInlineDelete
+                          ? () => onInlineDelete(openCol, row)
+                          : undefined
+                      }
                       onCancel={onInlineCancel}
                       disabled={inlineSubmitting}
                     />

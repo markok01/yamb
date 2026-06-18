@@ -12,11 +12,14 @@ import {
   useRoll,
   useStartTurn,
   useSubmitScore,
+  useCorrectScore,
+  useDeleteScore,
 } from "@/hooks/use-game-queries";
 import { useAiOpponent } from "@/hooks/use-ai-opponent";
 import type { AiDifficulty } from "@/lib/yamb/ai-player";
 import { COLUMN_NAMES, ROW_LABELS } from "@/lib/ui/labels";
 import { isVirtualRollingPhase } from "@/lib/ui/virtual-roll-first";
+import { createEmptyDice, createEmptyHeldDice } from "@/lib/yamb/dice";
 import { useDiceStore } from "@/stores/dice-store";
 import { useGamePreferencesStore } from "@/stores/game-preferences-store";
 import { useGameUiStore } from "@/stores/game-ui-store";
@@ -82,6 +85,8 @@ export function VirtualGameBoard({
   const roll = useRoll(gameId, userId);
   const hold = useHold(gameId, userId);
   const submit = useSubmitScore(gameId, userId);
+  const correctScore = useCorrectScore(gameId, userId);
+  const deleteScore = useDeleteScore(gameId, userId);
   const direct = useDirectPlay(gameId, userId);
 
   const isLoading =
@@ -90,9 +95,12 @@ export function VirtualGameBoard({
     roll.isPending ||
     hold.isPending ||
     submit.isPending ||
+    correctScore.isPending ||
+    deleteScore.isPending ||
     direct.isPending;
 
-  const inlineSubmitting = submit.isPending;
+  const inlineSubmitting =
+    submit.isPending || correctScore.isPending || deleteScore.isPending;
 
   useEffect(() => {
     if (isMyActiveTurn && activeTurn) {
@@ -175,9 +183,22 @@ export function VirtualGameBoard({
     direct.mutate(rowKey, { onError: handleError });
   }
 
-  function handleCellClick(col: ColumnType, rowKey: FillableRowKey) {
-    if (!isMyTurn) return;
+  function handleCellClick(
+    col: ColumnType,
+    rowKey: FillableRowKey,
+    isCorrection = false
+  ) {
+    if (!isMyTurn && !isCorrection) return;
     setErrorMessage(null);
+
+    if (isCorrection) {
+      if (isDirectedExecutor) {
+        setErrorMessage("Tokom dirigovanog poteza nije moguća ispravka.");
+        return;
+      }
+      setOpenInlineCell({ columnType: col, rowKey });
+      return;
+    }
 
     if (col === "DOJAVA" && isDirectingMode) {
       handleDirectPlay(rowKey);
@@ -253,6 +274,19 @@ export function VirtualGameBoard({
     score: number
   ) {
     flushSync(() => setOpenInlineCell(null));
+
+    const existing = myScorecard?.columns
+      .find((c) => c.columnType === col)
+      ?.entries[rowKey];
+
+    if (existing !== undefined) {
+      correctScore.mutate(
+        { columnType: col, rowKey, score },
+        { onError: handleError }
+      );
+      return;
+    }
+
     submit.mutate(
       {
         rowKey,
@@ -262,6 +296,11 @@ export function VirtualGameBoard({
       },
       { onError: handleError }
     );
+  }
+
+  function handleInlineScoreDelete(col: ColumnType, rowKey: FillableRowKey) {
+    flushSync(() => setOpenInlineCell(null));
+    deleteScore.mutate({ columnType: col, rowKey }, { onError: handleError });
   }
 
   if (!myScorecard) {
@@ -314,14 +353,15 @@ export function VirtualGameBoard({
     currentPlayer &&
     (isMyTurn ? (
       <DicePanel
-        dice={isMyActiveTurn ? dice : [0, 0, 0, 0, 0]}
+        dice={isMyActiveTurn ? dice : createEmptyDice()}
         heldDice={
-          isMyActiveTurn ? heldDice : [false, false, false, false, false]
+          isMyActiveTurn ? heldDice : createEmptyHeldDice()
         }
         rollCount={isMyActiveTurn ? rollCount : 0}
         canRoll={canRoll && !isLoading}
         canHold={canHold && !isLoading}
-        isLoading={isLoading || roll.isPending}
+        isLoading={isLoading}
+        isRolling={roll.isPending}
         waitingForTurn={false}
         onRoll={() => roll.mutate(undefined, { onError: handleError })}
         onToggleHold={(index) =>
@@ -332,9 +372,9 @@ export function VirtualGameBoard({
       <DicePanel
         readOnly
         playerLabel={currentPlayer.displayName}
-        dice={spectatorTurn?.dice ?? [0, 0, 0, 0, 0]}
+        dice={spectatorTurn?.dice ?? createEmptyDice()}
         heldDice={
-          spectatorTurn?.heldDice ?? [false, false, false, false, false]
+          spectatorTurn?.heldDice ?? createEmptyHeldDice()
         }
         rollCount={spectatorTurn?.rollCount ?? 0}
         canRoll={false}
@@ -356,6 +396,8 @@ export function VirtualGameBoard({
     isMyActiveTurn: isMyActiveTurn || !!isDirectedExecutor,
     virtualRollFirst: true,
     showPlayHints: playHints,
+    allowCorrection:
+      state.game.status === "IN_PROGRESS" && !isDirectedExecutor,
     turn: isMyActiveTurn ? activeTurn?.turn ?? null : null,
     rollCount,
     dice,
@@ -367,6 +409,7 @@ export function VirtualGameBoard({
     openInlineCell,
     onInlineCancel: () => setOpenInlineCell(null),
     onInlineScoreSubmit: handleInlineScoreSubmit,
+    onInlineScoreDelete: handleInlineScoreDelete,
   };
 
   return (

@@ -2,6 +2,7 @@ import { MAKSIMALNA_ALLOWED_SCORES, ERROR_MESSAGES } from "./constants";
 import { calculateAutoScore, isCombinationValid } from "./combinations";
 import {
   canFillCell,
+  isCellEmpty,
   isObaveznaLocked,
   isValidNajava,
 } from "./columns";
@@ -94,6 +95,22 @@ export function validateManualScore(
   return fail("SCORE_MISMATCH", ERROR_MESSAGES.SCORE_MISMATCH);
 }
 
+export function validateRelaxedColumnAccess(
+  column: ColumnState,
+  allColumns: ColumnState[],
+  targetRow: FillableRowKey
+): ValidationResult {
+  if (column.columnType === "OBAVEZNA" && isObaveznaLocked(allColumns)) {
+    return fail("OBAVEZNA_LOCKED", ERROR_MESSAGES.OBAVEZNA_LOCKED);
+  }
+
+  if (!isCellEmpty(column, targetRow)) {
+    return fail("CELL_ALREADY_FILLED", ERROR_MESSAGES.CELL_ALREADY_FILLED);
+  }
+
+  return ok();
+}
+
 export function validateColumnAccess(
   column: ColumnState,
   allColumns: ColumnState[],
@@ -176,7 +193,11 @@ export function validateSubmitScore(
   allColumns: ColumnState[],
   targetRow: FillableRowKey,
   score: number,
-  options?: { isManual?: boolean; dojavaAccepted?: boolean }
+  options?: {
+    isManual?: boolean;
+    dojavaAccepted?: boolean;
+    relaxedColumnOrder?: boolean;
+  }
 ): ValidationResult {
   if (turn.status !== "ACTIVE") {
     return fail("TURN_NOT_ACTIVE", "Potez nije aktivan");
@@ -186,7 +207,9 @@ export function validateSubmitScore(
     return fail("NO_ROLL_BEFORE_SCORE", ERROR_MESSAGES.NO_ROLL_BEFORE_SCORE);
   }
 
-  const accessCheck = validateColumnAccess(column, allColumns, targetRow);
+  const accessCheck = options?.relaxedColumnOrder
+    ? validateRelaxedColumnAccess(column, allColumns, targetRow)
+    : validateColumnAccess(column, allColumns, targetRow);
   if (!accessCheck.valid) return accessCheck;
 
   const najavaCheck = validateNajavaSubmit(turn, targetRow);
@@ -239,28 +262,23 @@ export function validatePhysicalScore(
   return ok();
 }
 
-/** Ispravka postojećeg unosa — koristi sačuvane kockice iz zapisa. */
+/** Ručna ispravka unosa — dozvoljava slobodnu promenu broja tokom partije. */
 export function validateScoreCorrection(
   rowKey: FillableRowKey,
   score: number,
   columnType: ColumnType,
-  dice: Dice,
+  _dice: Dice,
   _isManual: boolean
 ): ValidationResult {
   if (columnType === "MAKSIMALNA") {
     return validateMaksimalnaScore(rowKey, score);
   }
 
-  // Fizičke kockice bez snimljenog bacanja — ista pravila kao pri prvom unosu
-  if (!hasProvidedDice(dice)) {
-    return validatePhysicalScore(rowKey, dice, score, columnType);
+  if (!Number.isInteger(score) || score < 0) {
+    return fail("INVALID_SCORE", "Rezultat mora biti ceo broj ≥ 0");
   }
 
-  if (columnType === "RUCNA") {
-    return validateManualScore(rowKey, dice, score, "RUCNA");
-  }
-
-  return validateScoreForDice(rowKey, dice, score, columnType);
+  return ok();
 }
 
 /** Submit u PHYSICAL režimu — bez virtuelnog bacanja. */

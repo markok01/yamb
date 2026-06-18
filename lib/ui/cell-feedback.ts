@@ -2,6 +2,7 @@ import { calculateAutoScore } from "@/lib/yamb/combinations";
 import {
   canFillCell,
   getAvailableRows,
+  isCellEmpty,
   isObaveznaLocked,
 } from "@/lib/yamb/columns";
 import { MAKSIMALNA_ALLOWED_SCORES } from "@/lib/yamb/constants";
@@ -106,12 +107,12 @@ export function getCellUiState(
     const entry = column.entries[rowKey]!;
     const isNajavaLock =
       col === "NAJAVA" && ctx.turn?.najavaRowKey === rowKey;
-    if (ctx.allowCorrection && ctx.isPhysical) {
+    if (ctx.allowCorrection) {
       return {
         status: "filled",
         allowed: true,
         title: cellName,
-        message: `Klikni da ispraviš (${entry.score})`,
+        message: `Klikni da ispraviš ili obrišeš (${entry.score})`,
         suggestedScore: entry.score,
       };
     }
@@ -236,18 +237,13 @@ export function getCellUiState(
       };
     }
 
-    if (!canFillCell(column, rowKey)) {
-      const available = getAvailableRows(column);
-      const nextHint =
-        available.length > 0
-          ? `Sledeće dozvoljeno: ${available.map(rowLabel).join(", ")}`
-          : undefined;
+    if (!isCellEmpty(column, rowKey)) {
       return {
         status: "blocked",
         allowed: false,
         title: cellName,
-        message: "Moraš popuniti prethodna polja",
-        reason: nextHint ?? "Ova kolona ima strogi redosled popunjavanja.",
+        message: "Polje je već popunjeno",
+        reason: "Izaberi prazno polje za upis.",
       };
     }
 

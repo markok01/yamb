@@ -1,4 +1,5 @@
 import { calculateAutoScore } from "./combinations";
+import { ERROR_MESSAGES } from "./constants";
 import { getDojavaSuggestion } from "./dojava";
 import {
   createEmptyDice,
@@ -198,12 +199,24 @@ export function setHold(
     };
   }
 
+  const nextHeld = toggleHold(turn.heldDice, index);
+  if (nextHeld === turn.heldDice) {
+    return {
+      state,
+      result: {
+        valid: false,
+        errorCode: "MAX_HELD_EXCEEDED",
+        message: ERROR_MESSAGES.MAX_HELD_EXCEEDED,
+      },
+    };
+  }
+
   return {
     state: {
       ...state,
       activeTurn: {
         ...turn,
-        heldDice: toggleHold(turn.heldDice, index),
+        heldDice: nextHeld,
       },
     },
     result: { valid: true },
@@ -218,6 +231,8 @@ export interface SubmitScoreOptions {
   overrideRowKey?: FillableRowKey;
   /** Fizičke kockice — opciono, za validaciju */
   physicalDice?: Dice;
+  /** Virtuelno bacanje — igrač sam bira bilo koje slobodno polje */
+  relaxedColumnOrder?: boolean;
 }
 
 export function submitPhysicalScore(
@@ -254,7 +269,7 @@ export function submitPhysicalScore(
     };
   }
 
-  const dice: Dice = physicalDice ?? ([0, 0, 0, 0, 0] as Dice);
+  const dice: Dice = physicalDice ?? createEmptyDice();
   const check = validatePhysicalSubmit(
     turn,
     column,
@@ -347,6 +362,7 @@ export function submitScore(
     {
       isManual: options?.isManual,
       dojavaAccepted,
+      relaxedColumnOrder: options?.relaxedColumnOrder,
     }
   );
 

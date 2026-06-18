@@ -42,7 +42,6 @@ export interface DieProps {
   index: number;
   held?: boolean;
   rolling?: boolean;
-  holdPulse?: boolean;
   onClick?: () => void;
   disabled?: boolean;
   readOnly?: boolean;
@@ -53,7 +52,6 @@ export const Die = memo(function Die({
   index,
   held = false,
   rolling = false,
-  holdPulse = false,
   onClick,
   disabled = false,
   readOnly = false,
@@ -75,7 +73,6 @@ export const Die = memo(function Die({
           "die-3d group",
           held && "die-3d-held",
           rolling && "die-3d-rolling",
-          holdPulse && "die-3d-hold-pulse",
           isEmpty && !rolling && "die-3d-empty",
           interactive && "die-3d-interactive",
           readOnly && "die-3d-readonly"

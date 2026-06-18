@@ -1,6 +1,7 @@
 import { and, asc, eq } from "drizzle-orm";
 import { calculateAutoScore } from "@/lib/yamb/combinations";
 import { canFillCell } from "@/lib/yamb/columns";
+import { createEmptyDice, createEmptyHeldDice, normalizeDice } from "@/lib/yamb/dice";
 import {
   createEngineState,
   roll as engineRoll,
@@ -458,8 +459,8 @@ export async function startPlayerTurn(
     gamePlayerId: currentPlayer.player.id,
     columnType,
     rollCount: 0,
-    dice: [0, 0, 0, 0, 0],
-    heldDice: [false, false, false, false, false],
+    dice: createEmptyDice(),
+    heldDice: createEmptyHeldDice(),
     status: "ACTIVE",
   });
 
@@ -685,6 +686,7 @@ export async function submitTurnScore(
   engine.activeTurn = turnRowToState(turnRow, rollEvents);
 
   let scoreColumnType = turnRow.columnType as ColumnType;
+  const wasRollingPhase = scoreColumnType === VIRTUAL_ROLL_PLACEHOLDER;
 
   if (scoreColumnType === VIRTUAL_ROLL_PLACEHOLDER) {
     if (!input.columnType) {
@@ -723,6 +725,7 @@ export async function submitTurnScore(
     isManual: input.isManual,
     dojavaAccepted: input.dojavaAccepted,
     overrideRowKey: input.overrideRowKey,
+    relaxedColumnOrder: wasRollingPhase,
   });
 
   if (!result.valid) {
@@ -891,8 +894,8 @@ async function submitDirectedPhysicalScore(
 
   const directedRow = game.directedRowKey as FillableRowKey;
   const dice: Dice = input.dice
-    ? (input.dice as Dice)
-    : ([0, 0, 0, 0, 0] as Dice);
+    ? normalizeDice(input.dice)
+    : createEmptyDice();
 
   const scoreCheck = validatePhysicalScore(
     directedRow,
@@ -1000,9 +1003,7 @@ export async function submitPhysicalTurnScore(
   const rollEvents = await getRollEvents(turnRow.id);
   engine.activeTurn = turnRowToState(turnRow, rollEvents);
 
-  const physicalDice = input.dice
-    ? (input.dice as Dice)
-    : undefined;
+  const physicalDice = input.dice ? normalizeDice(input.dice) : undefined;
 
   const { result, entry } = engineSubmitPhysicalScore(
     engine,
@@ -1067,13 +1068,6 @@ export async function correctScoreEntry(
       "Ispravka je moguća samo tokom partije"
     );
   }
-  if (game.diceMode !== "PHYSICAL") {
-    throw new ApiError(
-      400,
-      "VIRTUAL_MODE",
-      "Ispravka unosa je dostupna u režimu fizičkih kockica"
-    );
-  }
 
   const player = await getPlayerInGame(gameId, userId);
   if (!player) {
@@ -1115,6 +1109,51 @@ export async function correctScoreEntry(
   }
 
   return { columnType: input.columnType, rowKey: input.rowKey, score: input.score };
+}
+
+export interface DeleteScoreInput {
+  columnType: ColumnType;
+  rowKey: FillableRowKey;
+}
+
+export async function deleteScoreEntry(
+  gameId: string,
+  userId: string,
+  input: DeleteScoreInput
+) {
+  const game = await getGameOrThrow(gameId);
+  if (game.status !== "IN_PROGRESS") {
+    throw new ApiError(
+      400,
+      "GAME_NOT_ACTIVE",
+      "Brisanje je moguće samo tokom partije"
+    );
+  }
+
+  const player = await getPlayerInGame(gameId, userId);
+  if (!player) {
+    throw new ApiError(403, "NOT_IN_GAME", "Nisi u ovoj partiji");
+  }
+
+  const db = getDb();
+  const existing = await db.query.scoreEntries.findFirst({
+    where: and(
+      eq(schema.scoreEntries.gamePlayerId, player.id),
+      eq(schema.scoreEntries.columnType, input.columnType),
+      eq(schema.scoreEntries.rowKey, input.rowKey)
+    ),
+  });
+
+  if (!existing) {
+    throw new ApiError(404, "ENTRY_NOT_FOUND", "Polje nije popunjeno");
+  }
+
+  await db
+    .delete(schema.scoreEntries)
+    .where(eq(schema.scoreEntries.id, existing.id));
+  await bumpGameStateVersion(gameId);
+
+  return { columnType: input.columnType, rowKey: input.rowKey };
 }
 
 export async function getLeaderboard(gameId: string) {

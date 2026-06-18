@@ -579,10 +579,20 @@ body {
     0 5px 0 var(--die-edge-deep),
     0 10px 22px rgba(0, 0, 0, 0.1);
   transition:
-    transform 0.22s ease-out,
     box-shadow 0.22s ease-out,
     border-color 0.22s ease-out;
   overflow: hidden;
+}
+
+.die-3d-held .die-3d-face {
+  transform: translateY(-5px) scale(1.04);
+  border-color: var(--y-accent) !important;
+  box-shadow:
+    0 1px 0 var(--die-edge) inset,
+    0 -3px 0 var(--die-edge-deep) inset,
+    0 8px 0 color-mix(in srgb, var(--y-accent) 55%, var(--die-edge-deep)),
+    0 0 0 2px color-mix(in srgb, var(--y-accent) 35%, transparent),
+    0 0 24px var(--y-accent-glow);
 }
 
 .die-3d-shine {
@@ -640,17 +650,6 @@ body {
   opacity: 0.72;
 }
 
-.die-3d-held .die-3d-face {
-  transform: translateY(-5px) scale(1.04);
-  border-color: var(--y-accent) !important;
-  box-shadow:
-    0 1px 0 var(--die-edge) inset,
-    0 -3px 0 var(--die-edge-deep) inset,
-    0 8px 0 color-mix(in srgb, var(--y-accent) 55%, var(--die-edge-deep)),
-    0 0 0 2px color-mix(in srgb, var(--y-accent) 35%, transparent),
-    0 0 24px var(--y-accent-glow);
-}
-
 .die-3d-hold-badge {
   position: absolute;
   left: 50%;
@@ -665,22 +664,6 @@ body {
   background: var(--y-accent);
   box-shadow: 0 2px 8px var(--y-accent-glow);
   z-index: 2;
-}
-
-.die-3d-hold-pulse .die-3d-face {
-  animation: die-hold-pulse 0.32s ease-out;
-}
-
-@keyframes die-hold-pulse {
-  0% {
-    transform: scale(1);
-  }
-  45% {
-    transform: translateY(-6px) scale(1.08);
-  }
-  100% {
-    transform: translateY(-5px) scale(1.04);
-  }
 }
 
 .die-3d-rolling .die-3d-face {
@@ -785,7 +768,6 @@ body {
   .scorecard-modal-backdrop,
   .scorecard-modal-panel,
   .die-3d-rolling,
-  .die-3d-hold-pulse .die-3d-face,
   .dice-panel-shake,
   .dice-roll-spinner {
     animation: none;

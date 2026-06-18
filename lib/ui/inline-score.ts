@@ -12,7 +12,7 @@ export function needsInlineScoreEntry(
   options?: InlineScoreOptions
 ): boolean {
   if (options?.isFilled) {
-    return !!ctx.allowCorrection && !!ctx.isPhysical;
+    return !!ctx.allowCorrection;
   }
 
   if (ctx.najavaMode && columnType === "NAJAVA") return false;

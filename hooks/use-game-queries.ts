@@ -245,6 +245,22 @@ export function useCorrectScore(gameId: string, userId: string | null) {
   });
 }
 
+export function useDeleteScore(gameId: string, userId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { columnType: ColumnType; rowKey: FillableRowKey }) =>
+      apiFetch(`/api/games/${gameId}/scores`, {
+        method: "DELETE",
+        userId,
+        body: JSON.stringify(body),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: gameKeys.detail(gameId) });
+      if (userId) qc.invalidateQueries({ queryKey: statsKeys.me(userId) });
+    },
+  });
+}
+
 export function useUserStats(userId: string | null) {
   return useQuery({
     queryKey: statsKeys.me(userId ?? ""),

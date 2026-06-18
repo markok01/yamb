@@ -5,6 +5,7 @@ import type { GameState } from "@/lib/api/types";
 import { ScorecardTable } from "@/components/scorecard/scorecard-table";
 import { Button } from "@/components/ui/button";
 import { isVirtualRollingPhase } from "@/lib/ui/virtual-roll-first";
+import { createEmptyDice } from "@/lib/yamb/dice";
 
 interface OpponentScorecardOverlayProps {
   state: GameState;
@@ -82,7 +83,7 @@ export function OpponentScorecardOverlay({
           isMyActiveTurn={false}
           turn={activeTurn?.turn ?? null}
           rollCount={activeTurn?.turn.rollCount ?? 0}
-          dice={activeTurn?.turn.dice ?? [0, 0, 0, 0, 0]}
+          dice={activeTurn?.turn.dice ?? createEmptyDice()}
           dojavaSuggestion={activeTurn?.dojavaSuggestion ?? null}
           showDojava={false}
         />

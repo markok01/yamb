@@ -7,7 +7,8 @@ import {
   isPoker,
   isTriling,
 } from "./combinations";
-import type { Dice } from "./types";
+import type { Dice, ScoringDice } from "./types";
+import { bestFiveForScore } from "./combinations";
 
 describe("combinations", () => {
   it("detects Kenta 1-5 and 2-6", () => {
@@ -40,14 +41,14 @@ describe("combinations", () => {
   });
 
   it("scores rows 1-6 as sum of matching dice", () => {
-    const dice: Dice = [1, 1, 3, 5, 6];
+    const dice: ScoringDice = [1, 1, 3, 5, 6];
     expect(calculateAutoScore("ROW_1", dice)).toBe(2);
     expect(calculateAutoScore("ROW_2", dice)).toBe(0);
     expect(calculateAutoScore("ROW_3", [1, 3, 3, 3, 5])).toBe(9);
   });
 
   it("scores Maximum and Minimum as sum of all dice", () => {
-    const dice: Dice = [2, 4, 4, 5, 6];
+    const dice: ScoringDice = [2, 4, 4, 5, 6];
     expect(calculateAutoScore("MAXIMUM", dice)).toBe(21);
     expect(calculateAutoScore("MINIMUM", dice)).toBe(21);
   });
@@ -58,17 +59,24 @@ describe("combinations", () => {
   });
 
   it("scores combination rows as sum or 0", () => {
-    const triling: Dice = [4, 4, 4, 2, 1];
+    const triling: ScoringDice = [4, 4, 4, 2, 1];
     expect(calculateAutoScore("TRILING", triling)).toBe(15);
     expect(calculateAutoScore("TRILING", [1, 2, 3, 4, 5])).toBe(0);
 
-    const ful: Dice = [3, 3, 3, 2, 2];
+    const ful: ScoringDice = [3, 3, 3, 2, 2];
     expect(calculateAutoScore("FUL", ful)).toBe(13);
 
-    const poker: Dice = [6, 6, 6, 6, 1];
+    const poker: ScoringDice = [6, 6, 6, 6, 1];
     expect(calculateAutoScore("POKER", poker)).toBe(25);
 
-    const jamb: Dice = [2, 2, 2, 2, 2];
+    const jamb: ScoringDice = [2, 2, 2, 2, 2];
     expect(calculateAutoScore("JAMB", jamb)).toBe(10);
+  });
+
+  it("picks best 5 of 6 dice for scoring", () => {
+    const dice: Dice = [6, 6, 6, 6, 6, 1];
+    expect(bestFiveForScore(dice, "ROW_6")).toEqual([6, 6, 6, 6, 6]);
+    expect(calculateAutoScore("ROW_6", dice)).toBe(30);
+    expect(calculateAutoScore("MINIMUM", dice)).toBe(25);
   });
 });

@@ -46,7 +46,7 @@ describe("physical mode", () => {
       "ROW_1",
       6,
       "REDOVNA",
-      [0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0],
       true
     );
     expect(result.valid).toBe(true);

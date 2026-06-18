@@ -1,17 +1,18 @@
-import { calculateAutoScore } from "./combinations";
 import {
-  isFul,
-  isJamb,
-  isKenta,
-  isPoker,
-  isTriling,
+  calculateAutoScore,
+  isCombinationValid,
 } from "./combinations";
 import {
   canFillCell,
   getAvailableRows,
   isObaveznaLocked,
 } from "./columns";
-import { COLUMN_ORDER, MAKSIMALNA_ALLOWED_SCORES } from "./constants";
+import {
+  COLUMN_ORDER,
+  DICE_COUNT,
+  MAKSIMALNA_ALLOWED_SCORES,
+  MAX_HELD_DICE,
+} from "./constants";
 import { getActiveTurn, type YambEngineState } from "./engine";
 import { COLUMN_NAMES, ROW_LABELS } from "@/lib/ui/labels";
 import { VIRTUAL_ROLL_PLACEHOLDER } from "@/lib/ui/virtual-roll-first";
@@ -59,20 +60,8 @@ function rngSpread(difficulty: AiDifficulty, rng: () => number): number {
 }
 
 function comboBonus(rowKey: FillableRowKey, dice: Dice): number {
-  switch (rowKey) {
-    case "JAMB":
-      return isJamb(dice) ? (COMBO_BONUS.JAMB ?? 0) : 0;
-    case "POKER":
-      return isPoker(dice) ? (COMBO_BONUS.POKER ?? 0) : 0;
-    case "FUL":
-      return isFul(dice) ? (COMBO_BONUS.FUL ?? 0) : 0;
-    case "TRILING":
-      return isTriling(dice) ? (COMBO_BONUS.TRILING ?? 0) : 0;
-    case "KENTA":
-      return isKenta(dice) ? (COMBO_BONUS.KENTA ?? 0) : 0;
-    default:
-      return 0;
-  }
+  if (!isCombinationValid(rowKey, dice)) return 0;
+  return COMBO_BONUS[rowKey as keyof typeof COMBO_BONUS] ?? 0;
 }
 
 function scoreRowCandidate(
@@ -123,7 +112,7 @@ function rankColumnStarts(
     const bestRow = rows
       .map((rowKey) => ({
         rowKey,
-        score: scoreRowCandidate(rowKey, [3, 3, 3, 4, 4] as Dice, difficulty, rng),
+        score: scoreRowCandidate(rowKey, [3, 3, 3, 4, 4, 1], difficulty, rng),
       }))
       .sort((a, b) => b.score - a.score)[0];
     const fillRatio =
@@ -175,8 +164,20 @@ function rankSubmitMoves(
     .sort((a, b) => b.score - a.score);
 }
 
+function capHolds(holds: boolean[]): boolean[] {
+  const held = holds
+    .map((held, index) => (held ? index : -1))
+    .filter((index) => index >= 0);
+  if (held.length <= MAX_HELD_DICE) return holds;
+  const next = Array.from({ length: DICE_COUNT }, () => false);
+  for (let i = 0; i < MAX_HELD_DICE; i++) {
+    next[held[i]] = true;
+  }
+  return next;
+}
+
 function idealHoldIndices(dice: Dice, targetRow: FillableRowKey): boolean[] {
-  const holds: boolean[] = [false, false, false, false, false];
+  const holds: boolean[] = Array.from({ length: DICE_COUNT }, () => false);
   const counts = new Map<number, number>();
   for (const d of dice) counts.set(d, (counts.get(d) ?? 0) + 1);
 
@@ -223,7 +224,7 @@ function idealHoldIndices(dice: Dice, targetRow: FillableRowKey): boolean[] {
     }
   }
 
-  return holds;
+  return capHolds(holds);
 }
 
 function applyHoldMistake(
@@ -237,11 +238,11 @@ function applyHoldMistake(
   for (let i = 0; i < next.length; i++) {
     if (rng() < mistakeRate) next[i] = !next[i];
   }
-  return next;
+  return capHolds(next);
 }
 
 function firstHoldToggle(current: HeldDice, desired: boolean[]): number | null {
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < DICE_COUNT; i++) {
     if (current[i] !== desired[i]) return i;
   }
   return null;
@@ -337,7 +338,7 @@ export function aiChooseDirectMove(
   const ranked = rows
     .map((rowKey) => ({
       rowKey,
-      score: scoreRowCandidate(rowKey, [3, 3, 3, 3, 3] as Dice, difficulty, rng),
+      score: scoreRowCandidate(rowKey, [3, 3, 3, 3, 3, 1], difficulty, rng),
     }))
     .sort((a, b) => b.score - a.score);
   const pick = pickFromRanked(ranked, difficulty, rng);

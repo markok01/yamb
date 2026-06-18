@@ -100,7 +100,11 @@ export const SUM_1_TO_6_BONUS_THRESHOLD = 60;
 export const SUM_1_TO_6_BONUS = 30;
 
 export const MAX_ROLLS_PER_TURN = 3;
-export const DICE_COUNT = 5;
+export const DICE_COUNT = 6;
+/** Za bodovanje se koristi najboljih 5 od 6 kockica. */
+export const SCORING_DICE_COUNT = 5;
+/** Uvek bar jedna kockica mora da se ponovo baca. */
+export const MAX_HELD_DICE = DICE_COUNT - 1;
 
 /** OBAVEZNA se otključava kada je ≥70% ostalih kolona popunjeno. */
 export const OBAVEZNA_UNLOCK_THRESHOLD = 0.7;
@@ -119,6 +123,7 @@ export const ERROR_MESSAGES = {
   NAJAVA_LOCKED: "Najava se ne može menjati nakon bacanja",
   NAJAVA_INVALID: "Najava nije validna za ovo polje",
   MAX_ROLLS_EXCEEDED: "Maksimalno 3 bacanja po potezu",
+  MAX_HELD_EXCEEDED: "Maksimalno 5 kockica može biti držano — uvek se bar jedna baca",
   NO_ROLL_BEFORE_SCORE: "Ne može upis pre prvog bacanja",
   TURN_IN_PROGRESS: "Ne može novi potez dok se ne završi trenutni",
   MAKSIMALNA_INVALID: "Vrednost nije u dozvoljenom skupu",

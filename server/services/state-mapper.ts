@@ -1,4 +1,5 @@
 import { createEmptyScorecard } from "@/lib/yamb/columns";
+import { normalizeDice, normalizeHeldDice } from "@/lib/yamb/dice";
 import { calculateColumnTotal, calculateFinalScore } from "@/lib/yamb/scoring";
 import type {
   ColumnState,
@@ -13,17 +14,11 @@ import type {
 import type { RollEventRow, ScoreEntryRow, TurnRow } from "@/server/db/schema";
 
 export function toDice(values: number[]): Dice {
-  if (values.length !== 5) {
-    throw new Error("Dice mora imati tačno 5 vrednosti");
-  }
-  return values as Dice;
+  return normalizeDice(values);
 }
 
 export function toHeldDice(values: boolean[]): HeldDice {
-  if (values.length !== 5) {
-    throw new Error("HeldDice mora imati tačno 5 vrednosti");
-  }
-  return values as HeldDice;
+  return normalizeHeldDice(values);
 }
 
 export function scoreEntriesToColumns(

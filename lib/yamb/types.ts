@@ -33,9 +33,11 @@ export type ColumnType =
 
 export type DiceMode = "VIRTUAL" | "PHYSICAL";
 
-export type Dice = [number, number, number, number, number];
+export type ScoringDice = [number, number, number, number, number];
 
-export type HeldDice = [boolean, boolean, boolean, boolean, boolean];
+export type Dice = [number, number, number, number, number, number];
+
+export type HeldDice = [boolean, boolean, boolean, boolean, boolean, boolean];
 
 export type TurnStatus = "ACTIVE" | "COMPLETED" | "CANCELLED";
 

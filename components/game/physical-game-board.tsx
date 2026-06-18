@@ -10,6 +10,7 @@ import {
   useStartTurn,
   useSubmitPhysical,
   useCorrectScore,
+  useDeleteScore,
 } from "@/hooks/use-game-queries";
 import { COLUMN_NAMES, ROW_LABELS } from "@/lib/ui/labels";
 import { useGameUiStore } from "@/stores/game-ui-store";
@@ -55,16 +56,21 @@ export function PhysicalGameBoard({
   const najava = useNajava(gameId, userId);
   const submitPhysical = useSubmitPhysical(gameId, userId);
   const correctScore = useCorrectScore(gameId, userId);
+  const deleteScore = useDeleteScore(gameId, userId);
   const direct = useDirectPlay(gameId, userId);
 
   const isLoading =
     startTurn.isPending ||
     najava.isPending ||
     submitPhysical.isPending ||
+    correctScore.isPending ||
+    deleteScore.isPending ||
     direct.isPending;
 
   const inlineSubmitting =
-    submitPhysical.isPending || correctScore.isPending;
+    submitPhysical.isPending ||
+    correctScore.isPending ||
+    deleteScore.isPending;
 
   const activeColumnType = activeTurn?.turn.columnType ?? null;
   const needsNajava =
@@ -182,6 +188,11 @@ export function PhysicalGameBoard({
     submitPhysical.mutate({ rowKey, score }, { onError: handleError });
   }
 
+  function handleInlineScoreDelete(col: ColumnType, rowKey: FillableRowKey) {
+    flushSync(() => setOpenInlineCell(null));
+    deleteScore.mutate({ columnType: col, rowKey }, { onError: handleError });
+  }
+
   if (!myScorecard) {
     return (
       <p className="text-center text-[var(--y-text-muted)]">Tabela nije pronađena.</p>
@@ -261,6 +272,7 @@ export function PhysicalGameBoard({
             openInlineCell,
             onInlineCancel: () => setOpenInlineCell(null),
             onInlineScoreSubmit: handleInlineScoreSubmit,
+            onInlineScoreDelete: handleInlineScoreDelete,
           }}
         />
       }

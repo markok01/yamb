@@ -13,6 +13,8 @@ interface DicePanelProps {
   canRoll: boolean;
   canHold: boolean;
   isLoading: boolean;
+  /** Samo bacanje — pokreće animaciju kockica (ne držanje) */
+  isRolling?: boolean;
   onRoll: () => void;
   onToggleHold: (index: number) => void;
   /** Posmatrački režim — prikaz kockica aktivnog igrača */
@@ -72,9 +74,11 @@ function statusMessage(
   if (rollCount === 0 && canRoll) return "Spremno — klikni „Baci kockice”";
   if (rollCount >= 3) return "Moraš upisati rezultat u tabelu";
   if (rollCount > 0 && canRoll)
-    return heldCount > 0
-      ? `${heldCount} kockic${heldCount === 1 ? "a" : "e"} držano — možeš ponovo baciti`
-      : "Klikni kockicu da je držiš, pa ponovo baci";
+    return heldCount >= 5
+      ? "Maksimalno 5 držano — bar jedna kockica se uvek baca"
+      : heldCount > 0
+        ? `${heldCount} kockic${heldCount === 1 ? "a" : "e"} držano — možeš ponovo baciti`
+        : "Klikni kockicu da je držiš, pa ponovo baci";
   return "Izaberi polje u tabeli";
 }
 
@@ -85,6 +89,7 @@ export function DicePanel({
   canRoll,
   canHold,
   isLoading,
+  isRolling = false,
   onRoll,
   onToggleHold,
   readOnly = false,
@@ -94,9 +99,7 @@ export function DicePanel({
 }: DicePanelProps) {
   const [rolling, setRolling] = useState(false);
   const [pendingRoll, setPendingRoll] = useState(false);
-  const [holdPulseIndex, setHoldPulseIndex] = useState<number | null>(null);
   const prevRoll = useRef(rollCount);
-  const prevHeld = useRef(heldDice);
 
   useEffect(() => {
     if (rollCount > prevRoll.current) {
@@ -115,23 +118,7 @@ export function DicePanel({
     }
   }, [pendingRoll, isLoading]);
 
-  useEffect(() => {
-    let changedIndex: number | null = null;
-    for (let i = 0; i < heldDice.length; i++) {
-      if (heldDice[i] !== prevHeld.current[i]) {
-        changedIndex = i;
-        break;
-      }
-    }
-    prevHeld.current = [...heldDice];
-    if (changedIndex === null) return;
-
-    setHoldPulseIndex(changedIndex);
-    const t = setTimeout(() => setHoldPulseIndex(null), 320);
-    return () => clearTimeout(t);
-  }, [heldDice]);
-
-  const isAnimating = rolling || pendingRoll || (isLoading && !readOnly);
+  const isAnimating = rolling || pendingRoll || (isRolling && !readOnly);
   const heldCount = heldDice.filter(Boolean).length;
   const status = statusMessage(
     readOnly,
@@ -145,11 +132,6 @@ export function DicePanel({
   function handleRoll() {
     setPendingRoll(true);
     onRoll();
-  }
-
-  function handleToggleHold(index: number) {
-    setHoldPulseIndex(index);
-    onToggleHold(index);
   }
 
   return (
@@ -198,11 +180,10 @@ export function DicePanel({
             value={value}
             held={heldDice[index]}
             rolling={isAnimating && !heldDice[index]}
-            holdPulse={holdPulseIndex === index}
             readOnly={readOnly}
             onClick={
               !readOnly && canHold && !isLoading
-                ? () => handleToggleHold(index)
+                ? () => onToggleHold(index)
                 : undefined
             }
             disabled={readOnly || !canHold || isLoading || waitingForTurn}
@@ -233,7 +214,7 @@ export function DicePanel({
           </Button>
           {rollCount >= 3 && (
             <p className="text-center text-[10px] font-medium text-[var(--y-warning)]">
-              Klikni dozvoljeno polje u tabeli da završiš potez
+              Klikni bilo koje prazno polje u tabeli da završiš potez
             </p>
           )}
         </div>
@@ -248,6 +229,7 @@ export function DicePanel({
       {!readOnly && canHold && rollCount > 0 && rollCount < 3 && (
         <p className="mt-3 text-center text-[10px] text-[var(--y-text-muted)]">
           Tapni kockicu da je <strong className="text-[var(--y-accent)]">DRŽIŠ</strong>
+          {" "}(max 5 — uvek se bar jedna baca)
         </p>
       )}
     </GlassPanel>
