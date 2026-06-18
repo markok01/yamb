@@ -157,6 +157,16 @@ body {
   box-shadow: 0 8px 22px -8px var(--y-accent-glow);
 }
 
+/* Brand logo — simple dice mark */
+.y-logo {
+  transition: opacity 0.2s ease;
+}
+
+.group:hover .y-logo,
+.y-logo:hover {
+  opacity: 0.88;
+}
+
 .y-nav-active {
   background: var(--y-accent-soft);
   color: var(--y-accent);

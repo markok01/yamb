@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { PageShell } from "@/components/layout/page-shell";
+import { JambLogo } from "@/components/brand/jamb-logo";
 import { GlassPanel } from "@/components/ui/glass-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +41,9 @@ export default function LoginPage() {
 
   return (
     <PageShell maxWidth="md">
+      <div className="mb-8 flex justify-center">
+        <JambLogo size="lg" />
+      </div>
       <GlassPanel glow="accent">
         <h1 className="mb-6 text-2xl font-black text-[var(--y-text)]">Prijava</h1>
         <form onSubmit={handleSubmit} className="space-y-4">

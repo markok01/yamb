@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatCard } from "@/components/ui/stat-card";
 import {
+  useDeleteAccount,
   useUpdateProfile,
   useUserHistory,
   useUserStatsDetail,
@@ -26,6 +27,8 @@ export default function SettingsPage() {
   );
   const { data: historyData } = useUserHistory(user?.id ?? null);
   const updateProfile = useUpdateProfile(user?.id ?? null);
+  const deleteAccount = useDeleteAccount(user?.id ?? null);
+  const clearUser = useSessionStore((s) => s.clearUser);
   const virtualPlayHints = useGamePreferencesStore((s) => s.virtualPlayHints);
   const setVirtualPlayHints = useGamePreferencesStore(
     (s) => s.setVirtualPlayHints
@@ -35,6 +38,8 @@ export default function SettingsPage() {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) router.replace("/login");
@@ -68,6 +73,19 @@ export default function SettingsPage() {
   const stats = statsData?.stats;
   const jambTotal = statsData?.jambCombinationsTotal ?? 0;
   const winRate = statsData?.winRate ?? 0;
+  const isGuest = !!user.isGuest;
+  const deleteConfirmLabel = isGuest ? user.displayName : user.username;
+
+  async function handleDeleteAccount() {
+    setDeleteError(null);
+    try {
+      await deleteAccount.mutateAsync(confirmDelete);
+      clearUser();
+      router.replace("/login");
+    } catch (err) {
+      setDeleteError(err instanceof ApiClientError ? err.message : "Greška");
+    }
+  }
 
   return (
     <PageShell
@@ -162,6 +180,38 @@ export default function SettingsPage() {
                 </table>
               </div>
             )}
+          </GlassPanel>
+
+          <GlassPanel padding="sm" className="border-red-500/30">
+            <h2 className="mb-2 text-lg font-bold text-red-400">Obriši nalog</h2>
+            <p className="mb-4 text-sm leading-relaxed text-[var(--y-text-muted)]">
+              Trajno briše tvoj nalog, statistiku, lige koje si kreirao i partije u
+              kojima si učestvovao. Ova radnja se ne može poništiti — moraćeš da
+              napraviš novi nalog.
+            </p>
+            <Input
+              label={
+                isGuest
+                  ? "Upiši ime za prikaz za potvrdu"
+                  : "Upiši imejl za potvrdu"
+              }
+              value={confirmDelete}
+              onChange={(e) => setConfirmDelete(e.target.value)}
+              placeholder={deleteConfirmLabel}
+            />
+            {deleteError && (
+              <p className="mt-3 text-sm text-red-400">{deleteError}</p>
+            )}
+            <Button
+              variant="secondary"
+              className="mt-4 border-red-500/50 text-red-400"
+              disabled={
+                deleteAccount.isPending || confirmDelete !== deleteConfirmLabel
+              }
+              onClick={handleDeleteAccount}
+            >
+              {deleteAccount.isPending ? "Brisanje…" : "Obriši nalog trajno"}
+            </Button>
           </GlassPanel>
         </div>
 

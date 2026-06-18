@@ -64,6 +64,22 @@ export function useUpdateProfile(userId: string | null) {
   });
 }
 
+export function useDeleteAccount(userId: string | null) {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (confirmText: string) =>
+      apiFetch<{ ok: boolean }>("/api/users/me", {
+        method: "DELETE",
+        userId,
+        body: JSON.stringify({ confirmText }),
+      }),
+    onSuccess: () => {
+      qc.clear();
+    },
+  });
+}
+
 export function useUserStatsDetail(userId: string | null) {
   return useQuery({
     queryKey: userKeys.stats(userId ?? ""),

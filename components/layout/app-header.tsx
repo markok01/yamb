@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { JambLogo } from "@/components/brand/jamb-logo";
 import { useLogout } from "@/hooks/use-auth-queries";
 import { useSessionStore } from "@/stores/session-store";
 import { useThemeStore } from "@/stores/theme-store";
@@ -25,13 +26,8 @@ export function AppHeader({ title }: { title?: string }) {
     <header className="y-header sticky top-0 z-50 px-4 py-3">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-6">
-          <Link href="/lobby" className="group flex items-center gap-2">
-            <span className="y-brand-gradient flex h-9 w-9 items-center justify-center rounded-xl text-sm font-black transition group-hover:scale-105">
-              Y
-            </span>
-            <span className="text-lg font-black tracking-tight text-[var(--y-text)]">
-              JAMB
-            </span>
+          <Link href="/lobby" className="group y-logo" aria-label="Jamb">
+            <JambLogo size="md" />
           </Link>
           {title && (
             <span className="hidden text-sm font-medium text-[var(--y-text-muted)] sm:inline">
