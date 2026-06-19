@@ -1,5 +1,6 @@
 import type { DiceMode } from "@/lib/yamb/types";
 import { handleApi, parseJson } from "@/server/lib/handle-api";
+import { ApiError } from "@/server/lib/api-error";
 import { requireUserId } from "@/server/lib/auth";
 import {
   createLeagueGame,
@@ -30,7 +31,7 @@ export async function POST(
     }>(request);
 
     if (!body.memberUserIds?.length) {
-      throw new Error("memberUserIds is required");
+      throw new ApiError(400, "INVALID_BODY", "memberUserIds is required");
     }
 
     return createLeagueGame(id, userId, {

@@ -56,7 +56,12 @@ async function main() {
           await pool.query(stmt);
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
-          if (message.includes("Duplicate column") || message.includes("already exists")) {
+          if (
+            message.includes("Duplicate column") ||
+            message.includes("already exists") ||
+            message.includes("Duplicate key name") ||
+            message.includes("Duplicate foreign key constraint")
+          ) {
             console.log(`  skip (već primenjeno): ${message.slice(0, 80)}`);
             continue;
           }
