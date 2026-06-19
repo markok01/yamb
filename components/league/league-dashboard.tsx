@@ -21,6 +21,7 @@ import { LeagueMembersTab } from "./league-members-tab";
 import { LeagueHistoryTab } from "./league-history-tab";
 import { LeagueStatisticsTab } from "./league-statistics-tab";
 import { LeagueSettingsTab } from "./league-settings-tab";
+import { LeaguePlayTab } from "./league-play-tab";
 
 export function LeagueDashboard({
   league,
@@ -45,9 +46,11 @@ export function LeagueDashboard({
   const isOwner = league.myRole === "OWNER";
   const isArchived = league.status === "ARCHIVED";
 
-  const visibleTabs = LEAGUE_TABS.filter(
-    (t) => t.id !== "settings" || isAdmin
-  );
+  const visibleTabs = LEAGUE_TABS.filter((t) => {
+    if (t.id === "settings") return isAdmin;
+    if (t.id === "play") return league.isMember && !isArchived;
+    return true;
+  });
 
   async function handleJoin() {
     setJoinError(null);
@@ -119,6 +122,13 @@ export function LeagueDashboard({
 
       {tab === "overview" && (
         <LeagueOverviewTab league={league} notifications={notifData?.notifications} />
+      )}
+      {tab === "play" && league.isMember && (
+        <LeaguePlayTab
+          league={league}
+          userId={userId}
+          isArchived={isArchived}
+        />
       )}
       {tab === "standings" && (
         standingsLoading ? (

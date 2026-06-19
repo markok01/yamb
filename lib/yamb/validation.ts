@@ -136,10 +136,31 @@ export function validateColumnAccess(
   return ok();
 }
 
+/** Najava u koloni N obavezuje sledećeg igrača da popuni isto polje u koloni D. */
+export function validateNajavaDojavaTarget(
+  allColumns: ColumnState[],
+  rowKey: FillableRowKey
+): ValidationResult {
+  const dojavaColumn = allColumns.find((c) => c.columnType === "DOJAVA");
+  if (!dojavaColumn) {
+    return fail("COLUMN_NOT_FOUND", "Kolona Dirigovana nije pronađena");
+  }
+
+  if (!canFillCell(dojavaColumn, rowKey)) {
+    return fail(
+      "NAJAVA_DIRECT_UNAVAILABLE",
+      ERROR_MESSAGES.NAJAVA_DIRECT_UNAVAILABLE
+    );
+  }
+
+  return validateColumnAccess(dojavaColumn, allColumns, rowKey);
+}
+
 export function validateNajavaBeforeRoll(
   column: ColumnState,
   rowKey: FillableRowKey,
-  rollCount: number
+  rollCount: number,
+  allColumns?: ColumnState[]
 ): ValidationResult {
   if (column.columnType !== "NAJAVA") return ok();
 
@@ -149,6 +170,11 @@ export function validateNajavaBeforeRoll(
 
   if (!isValidNajava(column, rowKey)) {
     return fail("NAJAVA_INVALID", ERROR_MESSAGES.NAJAVA_INVALID);
+  }
+
+  if (allColumns) {
+    const directCheck = validateNajavaDojavaTarget(allColumns, rowKey);
+    if (!directCheck.valid) return directCheck;
   }
 
   return ok();

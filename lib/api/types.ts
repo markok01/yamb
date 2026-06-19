@@ -24,6 +24,7 @@ export interface GameInfo {
   hostUserId: string;
   diceMode: DiceMode;
   stateVersion: number;
+  leagueId: string | null;
   startedAt: string | null;
   finishedAt: string | null;
 }

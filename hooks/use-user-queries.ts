@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api/client";
+import type { DiceMode } from "@/lib/yamb/types";
 import type {
   GameHistoryDetailResponse,
   GameHistoryResponse,
@@ -35,6 +36,7 @@ export const leagueKeys = {
   history: (id: string) => ["league", id, "history"] as const,
   stats: (id: string) => ["league", id, "stats"] as const,
   notifications: (id: string) => ["league", id, "notifications"] as const,
+  activeGames: (id: string) => ["league", id, "active-games"] as const,
   h2h: (id: string, userId: string, opponentId: string) =>
     ["league", id, "h2h", userId, opponentId] as const,
 };
@@ -45,6 +47,7 @@ function invalidateLeague(qc: ReturnType<typeof useQueryClient>, id: string) {
   qc.invalidateQueries({ queryKey: leagueKeys.history(id) });
   qc.invalidateQueries({ queryKey: leagueKeys.stats(id) });
   qc.invalidateQueries({ queryKey: leagueKeys.notifications(id) });
+  qc.invalidateQueries({ queryKey: leagueKeys.activeGames(id) });
   qc.invalidateQueries({ queryKey: leagueKeys.list });
 }
 
@@ -203,6 +206,49 @@ export function useLeagueNotifications(leagueId: string) {
         `/api/league/${leagueId}/notifications`
       ),
     enabled: !!leagueId,
+  });
+}
+
+export interface LeagueActiveGame {
+  gameId: string;
+  roomCode: string;
+  status: "LOBBY" | "IN_PROGRESS" | "FINISHED" | "CANCELLED";
+  diceMode: DiceMode;
+  hostUserId: string;
+  startedAt: string | null;
+  createdAt: string;
+  players: Array<{ userId: string; displayName: string }>;
+  isParticipant: boolean;
+}
+
+export function useLeagueActiveGames(leagueId: string, userId: string | null) {
+  return useQuery({
+    queryKey: leagueKeys.activeGames(leagueId),
+    queryFn: () =>
+      apiFetch<{ games: LeagueActiveGame[] }>(
+        `/api/league/${leagueId}/games`,
+        { userId }
+      ),
+    enabled: !!leagueId && !!userId,
+    refetchInterval: 15_000,
+  });
+}
+
+export function useCreateLeagueGame(leagueId: string, userId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { memberUserIds: string[]; diceMode?: DiceMode }) =>
+      apiFetch<{ gameId: string; roomCode: string; leagueId: string }>(
+        `/api/league/${leagueId}/games`,
+        {
+          method: "POST",
+          userId,
+          body: JSON.stringify(body),
+        }
+      ),
+    onSuccess: () => {
+      invalidateLeague(qc, leagueId);
+    },
   });
 }
 

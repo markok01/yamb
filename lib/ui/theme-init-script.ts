@@ -1,0 +1,2 @@
+/** Runs before React hydrates — avoids theme flash and class mismatch. */
+export const THEME_INIT_SCRIPT = `(function(){try{var k="yamb-theme",t="light",r=localStorage.getItem(k);if(r){var d=JSON.parse(r);if(d.state&&(d.state.theme==="dark"||d.state.theme==="light"))t=d.state.theme}var e=document.documentElement;e.classList.remove("light","dark");e.classList.add(t);e.style.colorScheme=t}catch(n){document.documentElement.classList.add("light")}})();`;

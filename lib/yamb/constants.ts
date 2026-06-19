@@ -122,6 +122,8 @@ export const ERROR_MESSAGES = {
   NAJAVA_REQUIRED: "Morate najaviti polje pre prvog bacanja",
   NAJAVA_LOCKED: "Najava se ne može menjati nakon bacanja",
   NAJAVA_INVALID: "Najava nije validna za ovo polje",
+  NAJAVA_DIRECT_UNAVAILABLE:
+    "Za najavu mora biti slobodno isto polje u koloni Dirigovana (D)",
   MAX_ROLLS_EXCEEDED: "Maksimalno 3 bacanja po potezu",
   MAX_HELD_EXCEEDED: "Maksimalno 5 kockica može biti držano — uvek se bar jedna baca",
   NO_ROLL_BEFORE_SCORE: "Ne može upis pre prvog bacanja",

@@ -31,6 +31,7 @@ export const LEAGUE_STATUS_LABEL: Record<string, string> = {
 
 export type LeagueTab =
   | "overview"
+  | "play"
   | "standings"
   | "members"
   | "history"
@@ -39,6 +40,7 @@ export type LeagueTab =
 
 export const LEAGUE_TABS: { id: LeagueTab; label: string }[] = [
   { id: "overview", label: "Pregled" },
+  { id: "play", label: "Igraj" },
   { id: "standings", label: "Tabela" },
   { id: "members", label: "Članovi" },
   { id: "history", label: "Istorija" },

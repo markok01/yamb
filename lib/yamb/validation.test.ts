@@ -5,6 +5,7 @@ import {
   validateManualScore,
   validateMaksimalnaScore,
   validateNajavaBeforeRoll,
+  validateNajavaDojavaTarget,
   validateNajavaSubmit,
   validateRoll,
   validateSubmitScore,
@@ -48,6 +49,28 @@ describe("validation", () => {
 
       const turn: TurnState = { ...createTurn("NAJAVA"), rollCount: 1 };
       expect(validateNajavaBeforeRoll(col, "KENTA", turn.rollCount).valid).toBe(false);
+    });
+
+    it("requires matching DOJAVA cell when columns provided", () => {
+      const columns = createEmptyScorecard();
+      const najava = columns.find((c) => c.columnType === "NAJAVA")!;
+      const dojava = columns.find((c) => c.columnType === "DOJAVA")!;
+
+      expect(
+        validateNajavaBeforeRoll(najava, "KENTA", 0, columns).valid
+      ).toBe(true);
+
+      dojava.entries.KENTA = {
+        rowKey: "KENTA",
+        score: 10,
+        dice: [1, 2, 3, 4, 5],
+      };
+      expect(
+        validateNajavaBeforeRoll(najava, "KENTA", 0, columns).valid
+      ).toBe(false);
+      expect(validateNajavaDojavaTarget(columns, "KENTA").errorCode).toBe(
+        "NAJAVA_DIRECT_UNAVAILABLE"
+      );
     });
 
     it("requires submit to announced field", () => {

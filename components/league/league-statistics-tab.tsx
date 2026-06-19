@@ -39,6 +39,10 @@ export function LeagueStatisticsTab({
 
   return (
     <div className="space-y-4">
+      <p className="text-sm text-[var(--y-text-muted)]">
+        Statistika ispod važi samo za partije u ovoj ligi i ne ulazi u globalnu
+        statistiku na profilu.
+      </p>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Ukupno mečeva" value={stats.totalMatches} />
         <StatCard label="Prosečan rezultat" value={stats.averageScore} />

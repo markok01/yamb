@@ -110,7 +110,7 @@ export function getTurnPhaseInfo(
     return {
       phase: "DECLARING",
       label: "Najava",
-      detail: `${player.displayName} mora najaviti polje pre bacanja (kolona N).`,
+      detail: `${player.displayName} najavljuje polje — sledeći igrač mora odigrati isto u koloni D.`,
     };
   }
 
@@ -188,7 +188,7 @@ export function getLiveTurnMessage(
         : `${name} bira kolonu…`;
     case "DECLARING":
       return isMe
-        ? "Moraš najaviti polje pre bacanja."
+        ? `Najavi polje pre bacanja — sledeći igrač mora odigrati isto u koloni D.`
         : `${name} najavljuje polje…`;
     case "ROLLING":
       if (state.activeTurn && state.activeTurn.turn.rollCount > 0) {

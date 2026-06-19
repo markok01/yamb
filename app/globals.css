@@ -86,11 +86,11 @@
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
-html.light {
-  color-scheme: light;
+html.dark {
+  color-scheme: dark;
 }
 
 body {
@@ -150,11 +150,11 @@ body {
 .y-brand-gradient {
   background: linear-gradient(
     135deg,
-    var(--y-accent) 0%,
-    color-mix(in srgb, var(--y-accent-secondary) 65%, var(--y-accent)) 100%
+    color-mix(in srgb, var(--y-accent) 88%, white) 0%,
+    color-mix(in srgb, var(--y-accent-secondary) 75%, var(--y-accent)) 100%
   );
   color: white;
-  box-shadow: 0 8px 22px -8px var(--y-accent-glow);
+  box-shadow: 0 6px 18px -10px var(--y-accent-glow);
 }
 
 /* Brand logo — simple dice mark */
@@ -178,11 +178,11 @@ body {
 }
 
 .y-glow-accent {
-  box-shadow: 0 0 36px -10px var(--y-accent-glow);
+  box-shadow: 0 0 28px -12px var(--y-accent-glow);
 }
 
 .y-glow-warm {
-  box-shadow: 0 0 36px -10px color-mix(in srgb, var(--y-warning) 35%, transparent);
+  box-shadow: 0 0 28px -12px color-mix(in srgb, var(--y-warning) 22%, transparent);
 }
 
 /* Header */
@@ -312,7 +312,7 @@ body {
 
 .scorecard-final-glow {
   color: var(--sc-accent);
-  text-shadow: 0 0 20px var(--y-accent-glow);
+  text-shadow: 0 0 14px var(--y-accent-glow);
 }
 
 .scorecard-footer {
@@ -344,8 +344,8 @@ body {
 .player-switcher-active {
   background: var(--y-accent-soft);
   color: var(--y-text);
-  border: 1px solid color-mix(in srgb, var(--y-accent) 35%, transparent);
-  box-shadow: 0 0 12px var(--y-accent-glow);
+  border: 1px solid color-mix(in srgb, var(--y-accent) 22%, transparent);
+  box-shadow: 0 0 8px var(--y-accent-glow);
 }
 
 .scorecard-banner-najava {
@@ -441,8 +441,8 @@ body {
   }
   50% {
     box-shadow:
-      inset 0 0 0 2px color-mix(in srgb, var(--sc-accent) 50%, transparent),
-      0 0 10px color-mix(in srgb, var(--sc-accent) 15%, transparent);
+      inset 0 0 0 2px color-mix(in srgb, var(--sc-accent) 35%, transparent),
+      0 0 8px color-mix(in srgb, var(--sc-accent) 10%, transparent);
   }
 }
 
@@ -577,7 +577,7 @@ body {
     0 1px 0 var(--die-edge) inset,
     0 -3px 0 var(--die-edge-deep) inset,
     0 5px 0 var(--die-edge-deep),
-    0 10px 22px rgba(0, 0, 0, 0.1);
+    0 8px 18px rgba(0, 0, 0, 0.06);
   transition:
     box-shadow 0.22s ease-out,
     border-color 0.22s ease-out;
@@ -661,8 +661,8 @@ body {
   font-weight: 800;
   letter-spacing: 0.08em;
   color: var(--y-text);
-  background: var(--y-accent);
-  box-shadow: 0 2px 8px var(--y-accent-glow);
+  background: color-mix(in srgb, var(--y-accent) 92%, white);
+  box-shadow: 0 2px 6px var(--y-accent-glow);
   z-index: 2;
 }
 
@@ -706,10 +706,10 @@ body {
 .dice-roll-step-active {
   background: linear-gradient(
     90deg,
-    var(--y-accent-secondary),
-    var(--y-accent)
+    color-mix(in srgb, var(--y-accent-secondary) 85%, white),
+    color-mix(in srgb, var(--y-accent) 85%, white)
   );
-  box-shadow: 0 0 10px var(--y-accent-glow);
+  box-shadow: 0 0 6px var(--y-accent-glow);
 }
 
 .dice-roll-spinner {

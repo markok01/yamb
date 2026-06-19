@@ -111,7 +111,12 @@ export function setNajava(
     };
   }
 
-  const check = validateNajavaBeforeRoll(column, rowKey, turn.rollCount);
+  const check = validateNajavaBeforeRoll(
+    column,
+    rowKey,
+    turn.rollCount,
+    state.columns
+  );
   if (!check.valid) return { state, result: check };
 
   return {

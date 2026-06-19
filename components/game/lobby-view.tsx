@@ -16,20 +16,37 @@ export function LobbyView({ gameId, userId, state }: LobbyViewProps) {
   const startGame = useStartGame(gameId, userId);
   const isHost = state.game.hostUserId === userId;
   const isPhysical = state.game.diceMode === "PHYSICAL";
+  const isLeagueGame = !!state.game.leagueId;
   const minPlayers = isPhysical ? 1 : 2;
   const canStart = isHost && state.players.length >= minPlayers;
 
   return (
     <GlassPanel glow="accent" className="mx-auto max-w-lg text-center">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--y-text-muted)]">
-        Kod sobe
-      </p>
-      <p className="mt-2 font-mono text-5xl font-black tracking-[0.3em] text-[var(--y-text)]">
-        {state.game.roomCode}
-      </p>
-      <p className="mt-2 text-sm text-[var(--y-text-muted)]">
-        Podeli kod sa igračima da se pridruže
-      </p>
+      {isLeagueGame ? (
+        <>
+          <Badge variant="success" className="mb-3">
+            Liga meč
+          </Badge>
+          <p className="text-sm text-[var(--y-text-muted)]">
+            Partija je rezervisana za izabrane članove lige
+          </p>
+          <p className="mt-2 font-mono text-2xl font-black tracking-widest text-[var(--y-text)]">
+            {state.game.roomCode}
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--y-text-muted)]">
+            Kod sobe
+          </p>
+          <p className="mt-2 font-mono text-5xl font-black tracking-[0.3em] text-[var(--y-text)]">
+            {state.game.roomCode}
+          </p>
+          <p className="mt-2 text-sm text-[var(--y-text-muted)]">
+            Podeli kod sa igračima da se pridruže
+          </p>
+        </>
+      )}
 
       <div className="mt-8 text-left">
         <div className="mb-3 flex items-center justify-between">

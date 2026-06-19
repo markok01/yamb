@@ -19,6 +19,7 @@ import {
   validateScoreCorrection,
   validateScoreForDice,
 } from "@/lib/yamb/validation";
+import { ERROR_MESSAGES } from "@/lib/yamb/constants";
 import { getDb, schema } from "@/server/db";
 import { ApiError, apiErrorFromInvalidMove } from "@/server/lib/api-error";
 import { newId, roomCode } from "@/server/lib/id";
@@ -32,6 +33,7 @@ import {
 } from "./state-mapper";
 import { bumpGameStateVersion, recordGameStats } from "./stats-service";
 import { recordOpponentStats } from "./history-service";
+import { addLeagueNotification } from "./league/league-notifications";
 import { createGuestUser as createGuestUserAccount } from "./auth-service";
 import { isAiDisplayName } from "@/lib/yamb/ai-player";
 import { VIRTUAL_ROLL_PLACEHOLDER } from "@/lib/ui/virtual-roll-first";
@@ -148,7 +150,76 @@ async function advanceTurn(gameId: string, playerCount: number) {
     .where(eq(schema.games.id, gameId));
 }
 
+async function finishLeagueGameIfComplete(
+  gameId: string,
+  leagueId: string
+) {
+  const players = await getGamePlayers(gameId);
+  const scorecards: PlayerScorecardDto[] = [];
+
+  for (const { player, user } of players) {
+    const rows = await getScoreRowsForPlayer(player.id);
+    scorecards.push(
+      buildPlayerScorecard(
+        player.id,
+        player.userId,
+        user.displayName,
+        player.seatOrder,
+        rows
+      )
+    );
+  }
+
+  const allComplete = scorecards.every((sc) => isScorecardComplete(sc.columns));
+  if (!allComplete) return null;
+
+  const leaderboard = buildLeaderboard(scorecards);
+  const winner = leaderboard[0];
+  const db = getDb();
+  const game = await getGameOrThrow(gameId);
+
+  await db
+    .update(schema.games)
+    .set({
+      status: "FINISHED",
+      finishedAt: new Date(),
+      winnerUserId: winner?.userId ?? null,
+    })
+    .where(eq(schema.games.id, gameId));
+
+  for (const entry of leaderboard) {
+    await db
+      .update(schema.gamePlayers)
+      .set({
+        finalScore: entry.finalScore,
+        placement: entry.placement,
+      })
+      .where(eq(schema.gamePlayers.id, entry.gamePlayerId));
+  }
+
+  const existing = await db.query.leagueMatches.findFirst({
+    where: eq(schema.leagueMatches.gameId, gameId),
+  });
+  if (!existing) {
+    await db.insert(schema.leagueMatches).values({ leagueId, gameId });
+    await addLeagueNotification(
+      leagueId,
+      "game_added",
+      `Liga meč ${game.roomCode} završen`,
+      winner?.userId ?? game.hostUserId
+    );
+  }
+
+  await bumpGameStateVersion(gameId);
+  return leaderboard;
+}
+
 async function finishGameIfComplete(gameId: string) {
+  const game = await getGameOrThrow(gameId);
+  if (game.leagueId) {
+    return finishLeagueGameIfComplete(gameId, game.leagueId);
+  }
+
   const players = await getGamePlayers(gameId);
   const scorecards: PlayerScorecardDto[] = [];
 
@@ -247,6 +318,47 @@ export async function createGame(hostUserId: string, diceMode: DiceMode = "VIRTU
   return { gameId, roomCode: code, diceMode };
 }
 
+export async function createGameWithPlayers(
+  hostUserId: string,
+  playerUserIds: string[],
+  diceMode: DiceMode = "VIRTUAL",
+  options?: { leagueId?: string }
+) {
+  const uniqueIds = [...new Set(playerUserIds)];
+  if (!uniqueIds.includes(hostUserId)) {
+    uniqueIds.unshift(hostUserId);
+  }
+  if (uniqueIds.length > MAX_PLAYERS) {
+    throw new ApiError(400, "TOO_MANY_PLAYERS", "Maksimalno 6 igrača po partiji");
+  }
+
+  const db = getDb();
+  const gameId = newId();
+  const code = roomCode();
+
+  await db.insert(schema.games).values({
+    id: gameId,
+    roomCode: code,
+    hostUserId,
+    leagueId: options?.leagueId ?? null,
+    status: "LOBBY",
+    maxPlayers: uniqueIds.length,
+    currentPlayerIndex: 0,
+    diceMode,
+  });
+
+  await db.insert(schema.gamePlayers).values(
+    uniqueIds.map((userId, seatOrder) => ({
+      id: newId(),
+      gameId,
+      userId,
+      seatOrder,
+    }))
+  );
+
+  return { gameId, roomCode: code, diceMode, playerCount: uniqueIds.length };
+}
+
 export async function joinGame(roomCodeValue: string, userId: string) {
   const db = getDb();
   const game = await db.query.games.findFirst({
@@ -255,6 +367,13 @@ export async function joinGame(roomCodeValue: string, userId: string) {
 
   if (!game) {
     throw new ApiError(404, "GAME_NOT_FOUND", "Soba nije pronađena");
+  }
+  if (game.leagueId) {
+    throw new ApiError(
+      400,
+      "LEAGUE_GAME",
+      "Ovo je liga partija — pridruživanje kodom nije moguće"
+    );
   }
   if (game.status !== "LOBBY") {
     throw new ApiError(400, "GAME_ALREADY_STARTED", "Partija je već počela");
@@ -368,6 +487,7 @@ export async function getGameState(gameId: string) {
       hostUserId: game.hostUserId,
       diceMode: game.diceMode as DiceMode,
       stateVersion: game.stateVersion,
+      leagueId: game.leagueId ?? null,
       startedAt: game.startedAt,
       finishedAt: game.finishedAt,
     },
@@ -595,6 +715,41 @@ export async function toggleHold(gameId: string, userId: string, index: number) 
   return { heldDice: turn.heldDice };
 }
 
+async function scheduleDirectedPlayFromNajava(
+  gameId: string,
+  directorGamePlayerId: string,
+  rowKey: FillableRowKey
+) {
+  const game = await getGameOrThrow(gameId);
+  if (game.directedRowKey) {
+    throw new ApiError(
+      400,
+      "DIRECTED_PLAY_PENDING",
+      "Prvo završi dirigovani potez pre nove dirige"
+    );
+  }
+
+  const engine = await loadEngineForPlayer(directorGamePlayerId);
+  const dojavaColumn = engine.columns.find((c) => c.columnType === "DOJAVA");
+  if (!dojavaColumn || !canFillCell(dojavaColumn, rowKey)) {
+    throw apiErrorFromInvalidMove(ERROR_MESSAGES.NAJAVA_DIRECT_UNAVAILABLE);
+  }
+
+  const accessCheck = validateColumnAccess(dojavaColumn, engine.columns, rowKey);
+  if (!accessCheck.valid) {
+    throw apiErrorFromInvalidMove(accessCheck.message);
+  }
+
+  const db = getDb();
+  await db
+    .update(schema.games)
+    .set({
+      directedRowKey: rowKey,
+      directorGamePlayerId,
+    })
+    .where(eq(schema.games.id, gameId));
+}
+
 export async function directPlay(
   gameId: string,
   userId: string,
@@ -752,6 +907,14 @@ export async function submitTurnScore(
     .update(schema.turns)
     .set({ status: "COMPLETED", completedAt: new Date() })
     .where(eq(schema.turns.id, turnRow.id));
+
+  if (scoreColumnType === "NAJAVA") {
+    await scheduleDirectedPlayFromNajava(
+      gameId,
+      currentPlayer.player.id,
+      entry.rowKey
+    );
+  }
 
   const players = await getGamePlayers(gameId);
   await advanceTurn(gameId, players.length);
@@ -1036,6 +1199,14 @@ export async function submitPhysicalTurnScore(
     .update(schema.turns)
     .set({ status: "COMPLETED", completedAt: new Date() })
     .where(eq(schema.turns.id, turnRow.id));
+
+  if (turnRow.columnType === "NAJAVA") {
+    await scheduleDirectedPlayFromNajava(
+      gameId,
+      currentPlayer.player.id,
+      entry.rowKey
+    );
+  }
 
   const players = await getGamePlayers(gameId);
   await advanceTurn(gameId, players.length);

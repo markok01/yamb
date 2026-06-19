@@ -2,6 +2,11 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 import { getDb, schema } from "@/server/db";
 import { ApiError } from "@/server/lib/api-error";
 import { inviteCode, newId } from "@/server/lib/id";
+import type { DiceMode } from "@/lib/yamb/types";
+import {
+  createGameWithPlayers,
+  startGame,
+} from "./game-service";
 import {
   assertAdmin,
   assertMember,
@@ -193,6 +198,139 @@ export async function addGameToLeague(
   }
 
   return { leagueId, gameId };
+}
+
+export async function createLeagueGame(
+  leagueId: string,
+  hostUserId: string,
+  input: { memberUserIds: string[]; diceMode?: DiceMode }
+) {
+  const league = await getLeagueRow(leagueId);
+  assertWritable(league.status as "ACTIVE" | "FINISHED" | "ARCHIVED");
+  await assertMember(leagueId, hostUserId);
+
+  const diceMode = input.diceMode ?? "VIRTUAL";
+  const selected = [...new Set(input.memberUserIds.filter((id) => id !== hostUserId))];
+
+  if (selected.length === 0) {
+    throw new ApiError(
+      400,
+      "NO_OPPONENTS",
+      "Izaberi bar jednog člana lige za partiju"
+    );
+  }
+
+  const db = getDb();
+  const memberRows = await db
+    .select({ userId: schema.leagueMembers.userId })
+    .from(schema.leagueMembers)
+    .where(eq(schema.leagueMembers.leagueId, leagueId));
+
+  const memberIds = new Set(memberRows.map((m) => m.userId));
+  if (!memberIds.has(hostUserId)) {
+    throw new ApiError(403, "NOT_MEMBER", "Nisi član ove lige");
+  }
+
+  for (const id of selected) {
+    if (!memberIds.has(id)) {
+      throw new ApiError(
+        400,
+        "NOT_LEAGUE_MEMBER",
+        "Svi izabrani igrači moraju biti članovi lige"
+      );
+    }
+  }
+
+  const allPlayerIds = [hostUserId, ...selected];
+  const minPlayers = diceMode === "PHYSICAL" ? 1 : 2;
+  if (allPlayerIds.length < minPlayers) {
+    throw new ApiError(
+      400,
+      "NOT_ENOUGH_PLAYERS",
+      diceMode === "PHYSICAL"
+        ? "Potreban je minimum 1 igrač"
+        : "Potrebna su minimum 2 igrača"
+    );
+  }
+
+  const { gameId, roomCode } = await createGameWithPlayers(
+    hostUserId,
+    allPlayerIds,
+    diceMode,
+    { leagueId }
+  );
+
+  await startGame(gameId, hostUserId);
+
+  const host = await db.query.users.findFirst({
+    where: eq(schema.users.id, hostUserId),
+  });
+
+  await addLeagueNotification(
+    leagueId,
+    "game_added",
+    `${host?.displayName ?? "Igrač"} je pokrenuo liga meč (${roomCode})`,
+    hostUserId
+  );
+
+  return { gameId, roomCode, leagueId, playerCount: allPlayerIds.length };
+}
+
+export async function getActiveLeagueGames(leagueId: string, userId: string) {
+  await assertMember(leagueId, userId);
+  const db = getDb();
+
+  const rows = await db
+    .select({
+      gameId: schema.games.id,
+      roomCode: schema.games.roomCode,
+      status: schema.games.status,
+      diceMode: schema.games.diceMode,
+      hostUserId: schema.games.hostUserId,
+      startedAt: schema.games.startedAt,
+      createdAt: schema.games.createdAt,
+    })
+    .from(schema.games)
+    .where(
+      and(
+        eq(schema.games.leagueId, leagueId),
+        inArray(schema.games.status, ["LOBBY", "IN_PROGRESS"])
+      )
+    )
+    .orderBy(desc(schema.games.createdAt));
+
+  if (rows.length === 0) return { games: [] };
+
+  const gameIds = rows.map((r) => r.gameId);
+  const playerRows = await db
+    .select({
+      gameId: schema.gamePlayers.gameId,
+      userId: schema.gamePlayers.userId,
+      displayName: schema.users.displayName,
+    })
+    .from(schema.gamePlayers)
+    .innerJoin(schema.users, eq(schema.gamePlayers.userId, schema.users.id))
+    .where(inArray(schema.gamePlayers.gameId, gameIds));
+
+  const playersByGame = new Map<
+    string,
+    Array<{ userId: string; displayName: string }>
+  >();
+  for (const p of playerRows) {
+    const list = playersByGame.get(p.gameId) ?? [];
+    list.push({ userId: p.userId, displayName: p.displayName });
+    playersByGame.set(p.gameId, list);
+  }
+
+  return {
+    games: rows.map((g) => ({
+      ...g,
+      players: playersByGame.get(g.gameId) ?? [],
+      isParticipant: (playersByGame.get(g.gameId) ?? []).some(
+        (p) => p.userId === userId
+      ),
+    })),
+  };
 }
 
 export async function getLeague(leagueId: string, userId: string) {

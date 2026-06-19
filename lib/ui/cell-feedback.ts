@@ -59,6 +59,17 @@ export interface ScorecardInteractionContext {
   isDirectedExecutor?: boolean;
 }
 
+const NAJAVA_DIRECT_HINT =
+  "Sledeći igrač mora odigrati isto polje u koloni Dirigovana (D).";
+
+function najavaDirectAllowed(
+  allColumns: ColumnState[],
+  rowKey: FillableRowKey
+): boolean {
+  const dojava = allColumns.find((c) => c.columnType === "DOJAVA");
+  return !!(dojava && canFillCell(dojava, rowKey));
+}
+
 function rowLabel(row: FillableRowKey): string {
   return ROW_LABELS[row];
 }
@@ -286,12 +297,22 @@ export function getCellUiState(
       }
 
       if (col === "NAJAVA" && canFillCell(column, rowKey)) {
+        if (!najavaDirectAllowed(allColumns, rowKey)) {
+          return {
+            status: "blocked",
+            allowed: false,
+            title: cellName,
+            message: "Polje nije dostupno za najavu",
+            reason:
+              "Isto polje u koloni D mora biti slobodno — sledeći igrač ga mora odigrati.",
+          };
+        }
         return {
           status: "najava-select",
           allowed: true,
           title: cellName,
           message: "Klikni da najaviš ovo polje",
-          reason: "Najava mora biti izabrana pre prvog bacanja kockica.",
+          reason: `Najava pre bacanja. ${NAJAVA_DIRECT_HINT}`,
         };
       }
 
@@ -341,12 +362,22 @@ export function getCellUiState(
       }
 
       if (col === "NAJAVA") {
+        if (!najavaDirectAllowed(allColumns, rowKey)) {
+          return {
+            status: "blocked",
+            allowed: false,
+            title: cellName,
+            message: "Polje nije dostupno za najavu",
+            reason:
+              "Isto polje u koloni D mora biti slobodno — sledeći igrač ga mora odigrati.",
+          };
+        }
         return {
           status: "najava-select",
           allowed: true,
           title: cellName,
           message: "Klikni da najaviš ovo polje",
-          reason: "Najava mora biti izabrana pre prvog bacanja kockica.",
+          reason: `Najava pre bacanja. ${NAJAVA_DIRECT_HINT}`,
         };
       }
 
@@ -423,12 +454,22 @@ export function getCellUiState(
   }
 
   if (c.najavaMode && col === "NAJAVA") {
+    if (!najavaDirectAllowed(allColumns, rowKey)) {
+      return {
+        status: "blocked",
+        allowed: false,
+        title: cellName,
+        message: "Polje nije dostupno za najavu",
+        reason:
+          "Isto polje u koloni D mora biti slobodno — sledeći igrač ga mora odigrati.",
+      };
+    }
     return {
       status: "najava-select",
       allowed: true,
       title: cellName,
       message: "Izaberi polje za NAJAVU pre bacanja",
-      reason: "Najava mora biti izabrana pre prvog bacanja kockica.",
+      reason: NAJAVA_DIRECT_HINT,
     };
   }
 

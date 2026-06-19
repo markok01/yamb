@@ -84,6 +84,9 @@ export const games = mysqlTable("games", {
   hostUserId: varchar("host_user_id", { length: 36 })
     .notNull()
     .references(() => users.id),
+  leagueId: varchar("league_id", { length: 36 }).references(() => leagues.id, {
+    onDelete: "set null",
+  }),
   winnerUserId: varchar("winner_user_id", { length: 36 }).references(
     () => users.id
   ),
