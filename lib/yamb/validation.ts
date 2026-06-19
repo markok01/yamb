@@ -361,6 +361,21 @@ export function validateNewTurn(
   return ok();
 }
 
+export function validateDirectedSubmit(
+  directedRowKey: FillableRowKey | null | undefined,
+  targetRow: FillableRowKey,
+  columnType: ColumnType
+): ValidationResult {
+  if (!directedRowKey) return ok();
+  if (columnType !== "DOJAVA") {
+    return fail("DIRECTED_COLUMN_REQUIRED", ERROR_MESSAGES.DOJAVA_REQUIRED);
+  }
+  if (targetRow !== directedRowKey) {
+    return fail("DIRECTED_ROW_MISMATCH", ERROR_MESSAGES.DIRECTED_ROW_MISMATCH);
+  }
+  return ok();
+}
+
 export function createScoreEntry(
   rowKey: FillableRowKey,
   score: number,

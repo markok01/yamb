@@ -127,6 +127,8 @@ export const ERROR_MESSAGES = {
   NAJAVA_INVALID: "Najava nije validna za ovo polje",
   NAJAVA_DIRECT_UNAVAILABLE:
     "Za najavu mora biti slobodno isto polje u koloni Dirigovana (D)",
+  DIRECTED_ROW_MISMATCH:
+    "Morate odigrati isto polje koje je prethodni igrač odigrao u koloni Najava.",
   MAX_ROLLS_EXCEEDED: "Maksimalno 3 bacanja po potezu",
   MAX_HELD_EXCEEDED: "Maksimalno 5 kockica može biti držano — uvek se bar jedna baca",
   NO_ROLL_BEFORE_SCORE: "Ne može upis pre prvog bacanja",

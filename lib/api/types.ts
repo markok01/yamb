@@ -25,6 +25,7 @@ export interface GameInfo {
   diceMode: DiceMode;
   stateVersion: number;
   leagueId: string | null;
+  directedRowKey: FillableRowKey | null;
   startedAt: string | null;
   finishedAt: string | null;
 }

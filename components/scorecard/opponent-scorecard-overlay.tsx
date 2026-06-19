@@ -86,6 +86,8 @@ export function OpponentScorecardOverlay({
           dice={activeTurn?.turn.dice ?? createEmptyDice()}
           dojavaSuggestion={activeTurn?.dojavaSuggestion ?? null}
           showDojava={false}
+          directedPlay={state.directedPlay}
+          scorecardGamePlayerId={scorecard.gamePlayerId}
         />
       </div>
     </div>

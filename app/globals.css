@@ -393,6 +393,23 @@ body {
   animation: scorecard-pulse 2s ease-in-out infinite;
 }
 
+.scorecard-cell-directed {
+  background: color-mix(in srgb, var(--y-accent) 18%, var(--sc-cell-bg));
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--y-accent) 55%, transparent);
+  animation: scorecard-pulse 2s ease-in-out infinite;
+}
+
+.scorecard-cell-directed-locked {
+  opacity: 0.45;
+  background: color-mix(in srgb, var(--y-text-muted) 8%, var(--sc-cell-bg));
+}
+
+.scorecard-banner-directed {
+  border-color: color-mix(in srgb, var(--y-accent) 35%, var(--y-border));
+  background: color-mix(in srgb, var(--y-accent) 10%, var(--y-surface));
+  color: var(--y-text);
+}
+
 .scorecard-cell-blocked {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--y-danger) 45%, transparent);
 }

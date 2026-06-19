@@ -8,6 +8,7 @@ import {
   validateNajavaBeforeRoll,
   validateNajavaDojavaTarget,
   validateNajavaSubmit,
+  validateDirectedSubmit,
   validateRoll,
   validateSubmitScore,
 } from "./validation";
@@ -105,6 +106,22 @@ describe("validation", () => {
       const result = validateColumnAccess(obavezna, columns, "ROW_1");
       expect(result.valid).toBe(false);
       expect(result.errorCode).toBe("OBAVEZNA_LOCKED");
+    });
+  });
+
+  describe("directed play", () => {
+    it("requires matching row in DOJAVA column", () => {
+      expect(validateDirectedSubmit("POKER", "POKER", "DOJAVA").valid).toBe(true);
+      expect(validateDirectedSubmit("POKER", "KENTA", "DOJAVA").valid).toBe(
+        false
+      );
+      expect(validateDirectedSubmit("POKER", "KENTA", "DOJAVA").errorCode).toBe(
+        "DIRECTED_ROW_MISMATCH"
+      );
+    });
+
+    it("ignores when no directed row pending", () => {
+      expect(validateDirectedSubmit(null, "KENTA", "REDOVNA").valid).toBe(true);
     });
   });
 

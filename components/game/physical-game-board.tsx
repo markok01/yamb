@@ -13,6 +13,7 @@ import {
   useDeleteScore,
 } from "@/hooks/use-game-queries";
 import { COLUMN_NAMES, ROW_LABELS } from "@/lib/ui/labels";
+import { DIRECTED_ROW_MISMATCH_MESSAGE } from "@/lib/ui/directed-play";
 import { useGameUiStore } from "@/stores/game-ui-store";
 import { ApiClientError } from "@/lib/api/client";
 import { MultiplayerScorecards } from "@/components/game/multiplayer-scorecards";
@@ -117,9 +118,7 @@ export function PhysicalGameBoard({
 
     if (isDirectedExecutor && directedPlay) {
       if (col !== "DOJAVA" || rowKey !== directedPlay.rowKey) {
-        setErrorMessage(
-          `Moraš upisati ${ROW_LABELS[directedPlay.rowKey]} samo u kolonu Dirigovana (D).`
-        );
+        setErrorMessage(DIRECTED_ROW_MISMATCH_MESSAGE);
         return;
       }
       setOpenInlineCell({ columnType: col, rowKey });
@@ -267,6 +266,8 @@ export function PhysicalGameBoard({
             directedPlay,
             isDirectingMode,
             isDirectedExecutor,
+            onDirectedMismatch: () =>
+              setErrorMessage(DIRECTED_ROW_MISMATCH_MESSAGE),
             isLoading,
             inlineSubmitting,
             openInlineCell,

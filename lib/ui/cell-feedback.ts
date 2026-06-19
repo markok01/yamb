@@ -7,6 +7,7 @@ import {
 } from "@/lib/yamb/columns";
 import { MAKSIMALNA_ALLOWED_SCORES } from "@/lib/yamb/constants";
 import type { DirectedPlay } from "@/lib/api/types";
+import { DIRECTED_ROW_MISMATCH_MESSAGE } from "@/lib/ui/directed-play";
 import type { ColumnState, ColumnType, Dice, FillableRowKey, TurnState } from "@/lib/yamb/types";
 import { COLUMN_NAMES, ROW_LABELS } from "@/lib/ui/labels";
 import { isVirtualRollingPhase } from "@/lib/ui/virtual-roll-first";
@@ -17,6 +18,8 @@ export type CellUiStatus =
   | "blocked"
   | "najava-select"
   | "najava-locked"
+  | "directed-target"
+  | "directed-locked"
   | "inactive"
   | "subtotal";
 
@@ -57,6 +60,8 @@ export interface ScorecardInteractionContext {
   isDirectingMode?: boolean;
   /** Izvodi dirigovani potez */
   isDirectedExecutor?: boolean;
+  /** Čija se tabela prikazuje (gamePlayerId) */
+  scorecardGamePlayerId?: string;
 }
 
 const NAJAVA_DIRECT_HINT =
@@ -147,49 +152,76 @@ export function getCellUiState(
     };
   }
 
-  if (c.isDirectedExecutor && c.directedPlay) {
-    const targetRow = c.directedPlay.rowKey;
-    if (c.rollCount === 0) {
+  if (c.directedPlay && c.scorecardGamePlayerId) {
+    const { directedPlay: dp } = c;
+    const onDirectorSheet =
+      c.scorecardGamePlayerId === dp.directorGamePlayerId;
+    const targetRow = dp.rowKey;
+
+    if (onDirectorSheet && col === "DOJAVA" && rowKey === targetRow && !filled) {
+      if (c.isDirectedExecutor) {
+        if (c.rollCount === 0 && !c.isPhysical) {
+          return {
+            status: "directed-target",
+            allowed: false,
+            title: cellName,
+            message: `Dirigovano polje: ${rowLabel(rowKey)}`,
+            reason: "Prvo baci kockice.",
+          };
+        }
+        const hint =
+          hints && c.rollCount > 0
+            ? calculateAutoScore(rowKey, c.dice)
+            : undefined;
+        return {
+          status: "directed-target",
+          allowed: true,
+          title: cellName,
+          message: `Dirigovano polje: ${rowLabel(rowKey)}`,
+          reason: `Upiši u kolonu D igrača ${dp.directorDisplayName}.`,
+          suggestedScore: hint,
+          scoreHint:
+            hint !== undefined ? `Sistemski rezultat: ${hint}` : undefined,
+        };
+      }
       return {
-        status: "blocked",
+        status: "directed-target",
         allowed: false,
         title: cellName,
-        message: "Dirigovani potez",
-        reason: "Prvo baci kockice.",
+        message: `Dirigovano polje: ${rowLabel(rowKey)}`,
+        reason: "Sledeći igrač mora odigrati ovo polje u koloni D.",
       };
     }
-    if (col === "DOJAVA" && rowKey === targetRow) {
-      const hint =
-        hints && c.rollCount > 0
-          ? calculateAutoScore(rowKey, c.dice)
-          : undefined;
-      return {
-        status: "allowed",
-        allowed: true,
-        title: cellName,
-        message: `Dirigovano: ${rowLabel(rowKey)}`,
-        reason: `Upiši samo u kolonu D — ${rowLabel(rowKey)} (D igrača ${c.directedPlay.directorDisplayName}).`,
-        suggestedScore: hint,
-        scoreHint:
-          hint !== undefined ? `Sistemski rezultat: ${hint}` : undefined,
-      };
+
+    if (c.isDirectedExecutor) {
+      if (!onDirectorSheet) {
+        return {
+          status: "directed-locked",
+          allowed: false,
+          title: cellName,
+          message: "Dirigovani potez",
+          reason: `Upiši ${rowLabel(targetRow)} u kolonu D igrača ${dp.directorDisplayName}.`,
+        };
+      }
+      if (col === "DOJAVA" && rowKey !== targetRow) {
+        return {
+          status: "directed-locked",
+          allowed: false,
+          title: cellName,
+          message: "Polje je zaključano",
+          reason: DIRECTED_ROW_MISMATCH_MESSAGE,
+        };
+      }
+      if (col !== "DOJAVA") {
+        return {
+          status: "directed-locked",
+          allowed: false,
+          title: cellName,
+          message: "Samo kolona Dirigovana",
+          reason: DIRECTED_ROW_MISMATCH_MESSAGE,
+        };
+      }
     }
-    if (col !== "DOJAVA") {
-      return {
-        status: "blocked",
-        allowed: false,
-        title: cellName,
-        message: "Samo kolona Dirigovana",
-        reason: `Moraš upisati ${rowLabel(targetRow)} u kolonu D.`,
-      };
-    }
-    return {
-      status: "blocked",
-      allowed: false,
-      title: cellName,
-      message: "Dirigovano polje",
-      reason: `U koloni D možeš samo ${rowLabel(targetRow)}.`,
-    };
   }
 
   if (col === "DOJAVA" && c.isDirectingMode && canFillCell(column, rowKey)) {

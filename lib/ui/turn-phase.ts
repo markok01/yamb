@@ -180,7 +180,7 @@ export function getLiveTurnMessage(
     case "DIRECTED_EXECUTION":
       if (!directed) return info.detail ?? null;
       return isMe
-        ? `Dirigovano: upiši ${ROW_LABELS[directed.rowKey]} samo u kolonu D (D igrača ${directed.directorDisplayName}).`
+        ? `Dirigovano: upiši ${ROW_LABELS[directed.rowKey]} u kolonu D igrača ${directed.directorDisplayName}.`
         : `${name} izvršava dirigu — ${ROW_LABELS[directed.rowKey]} u kolonu D…`;
     case "PICKING_COLUMN":
       return isMe

@@ -109,6 +109,8 @@ export interface ScorecardTableProps {
   directedPlay?: ScorecardInteractionContext["directedPlay"];
   isDirectingMode?: boolean;
   isDirectedExecutor?: boolean;
+  scorecardGamePlayerId?: string;
+  onDirectedMismatch?: () => void;
 }
 
 export function ScorecardTable(props: ScorecardTableProps) {
@@ -145,6 +147,8 @@ export function ScorecardTable(props: ScorecardTableProps) {
     directedPlay = null,
     isDirectingMode = false,
     isDirectedExecutor = false,
+    scorecardGamePlayerId,
+    onDirectedMismatch,
   } = props;
 
   const [hoveredRow, setHoveredRow] = useState<ScorecardRowKey | null>(null);
@@ -198,6 +202,7 @@ export function ScorecardTable(props: ScorecardTableProps) {
       directedPlay,
       isDirectingMode,
       isDirectedExecutor,
+      scorecardGamePlayerId: scorecardGamePlayerId ?? scorecard.gamePlayerId,
     }),
     [
       isMyTurn,
@@ -218,6 +223,8 @@ export function ScorecardTable(props: ScorecardTableProps) {
       directedPlay,
       isDirectingMode,
       isDirectedExecutor,
+      scorecardGamePlayerId,
+      scorecard.gamePlayerId,
     ]
   );
 
@@ -296,7 +303,17 @@ export function ScorecardTable(props: ScorecardTableProps) {
     if (!col) return;
     const ui = getCellUiState(col, scorecard.columns, rowKey, ctx);
 
-    if (!ui.allowed) return;
+    if (!ui.allowed) {
+      if (
+        isDirectedExecutor &&
+        directedPlay &&
+        col.columnType === "DOJAVA" &&
+        rowKey !== directedPlay.rowKey
+      ) {
+        onDirectedMismatch?.();
+      }
+      return;
+    }
 
     const cellValue = getCellValue(scorecard, columnType, rowKey);
     const isFilled = isCorrection ?? cellValue !== "";
@@ -607,20 +624,28 @@ export function ScorecardTable(props: ScorecardTableProps) {
                           ? String(ui.suggestedScore ?? value)
                           : value;
 
+                      const isDirectedTarget =
+                        ui.status === "directed-target" && isEmpty;
+                      const isDirectedLocked = ui.status === "directed-locked";
+
                       return (
                         <td
                           key={`${col.columnType}-${row}`}
                           className={[
                             "relative px-1 py-1 text-center tabular-nums",
-                            isActiveCol && isEmpty
-                              ? "scorecard-cell-active"
-                              : crossHighlight
-                                ? "scorecard-cell-hover"
-                                : "scorecard-cell",
+                            isDirectedTarget
+                              ? "scorecard-cell-directed"
+                              : isDirectedLocked
+                                ? "scorecard-cell-directed-locked"
+                                : isActiveCol && isEmpty
+                                  ? "scorecard-cell-active"
+                                  : crossHighlight
+                                    ? "scorecard-cell-hover"
+                                    : "scorecard-cell",
                             isEditing ? "scorecard-cell-active" : "",
                             isClickableTarget && !isEditing
                               ? "cursor-pointer"
-                              : showDisabled
+                              : showDisabled || isDirectedLocked
                                 ? "scorecard-cell-disabled cursor-not-allowed"
                                 : readOnly
                                   ? "cursor-default"
@@ -686,6 +711,15 @@ export function ScorecardTable(props: ScorecardTableProps) {
                               title="Najavljeno"
                             >
                               🔒
+                            </span>
+                          )}
+                          {isDirectedTarget && (
+                            <span
+                              className="absolute right-1 top-1 text-[10px]"
+                              style={{ color: "var(--y-accent)" }}
+                              title="Dirigovano polje"
+                            >
+                              🎯
                             </span>
                           )}
                         </td>

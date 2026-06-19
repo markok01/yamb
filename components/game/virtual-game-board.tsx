@@ -18,6 +18,7 @@ import {
 import { useAiOpponent } from "@/hooks/use-ai-opponent";
 import type { AiDifficulty } from "@/lib/yamb/ai-player";
 import { COLUMN_NAMES, ROW_LABELS } from "@/lib/ui/labels";
+import { DIRECTED_ROW_MISMATCH_MESSAGE } from "@/lib/ui/directed-play";
 import { isVirtualRollingPhase } from "@/lib/ui/virtual-roll-first";
 import { createEmptyDice, createEmptyHeldDice } from "@/lib/yamb/dice";
 import { useDiceStore } from "@/stores/dice-store";
@@ -145,9 +146,7 @@ export function VirtualGameBoard({
   function submitCell(col: ColumnType, rowKey: FillableRowKey) {
     if (isDirectedExecutor && directedPlay) {
       if (rowKey !== directedPlay.rowKey) {
-        setErrorMessage(
-          `Moraš igrati ${ROW_LABELS[directedPlay.rowKey]} (dirigovano polje).`
-        );
+        setErrorMessage(DIRECTED_ROW_MISMATCH_MESSAGE);
         return;
       }
       submit.mutate({ rowKey, columnType: "DOJAVA" }, { onError: handleError });
@@ -211,9 +210,7 @@ export function VirtualGameBoard({
         return;
       }
       if (col !== "DOJAVA" || rowKey !== directedPlay.rowKey) {
-        setErrorMessage(
-          `Moraš upisati ${ROW_LABELS[directedPlay.rowKey]} samo u kolonu Dirigovana (D).`
-        );
+        setErrorMessage(DIRECTED_ROW_MISMATCH_MESSAGE);
         return;
       }
       submitCell(col, rowKey);
@@ -404,6 +401,7 @@ export function VirtualGameBoard({
     directedPlay,
     isDirectingMode,
     isDirectedExecutor,
+    onDirectedMismatch: () => setErrorMessage(DIRECTED_ROW_MISMATCH_MESSAGE),
     isLoading,
     inlineSubmitting,
     openInlineCell,

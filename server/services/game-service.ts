@@ -15,6 +15,7 @@ import { isScorecardComplete } from "@/lib/yamb/columns";
 import type { ColumnType, Dice, DiceMode, FillableRowKey } from "@/lib/yamb/types";
 import {
   validateColumnAccess,
+  validateDirectedSubmit,
   validatePhysicalScore,
   validateScoreCorrection,
   validateScoreForDice,
@@ -564,6 +565,7 @@ export async function getGameState(gameId: string) {
       diceMode: game.diceMode as DiceMode,
       stateVersion: game.stateVersion,
       leagueId: game.leagueId ?? null,
+      directedRowKey: (game.directedRowKey as FillableRowKey | null) ?? null,
       startedAt: game.startedAt,
       finishedAt: game.finishedAt,
     },
@@ -1047,10 +1049,13 @@ async function submitDirectedTurnScore(
 ) {
   assertDirectedExecutor(game, executorGamePlayerId);
 
-  if (input.rowKey !== game.directedRowKey) {
-    throw apiErrorFromInvalidMove(
-      `Moraš igrati ${game.directedRowKey} u koloni Dirigovana (D)`
-    );
+  const directedCheck = validateDirectedSubmit(
+    game.directedRowKey,
+    input.rowKey,
+    input.columnType ?? "DOJAVA"
+  );
+  if (!directedCheck.valid) {
+    throw apiErrorFromInvalidMove(directedCheck.message);
   }
 
   if (input.columnType && input.columnType !== "DOJAVA") {
@@ -1144,10 +1149,13 @@ async function submitDirectedPhysicalScore(
 ) {
   assertDirectedExecutor(game, executorGamePlayerId);
 
-  if (input.rowKey !== game.directedRowKey) {
-    throw apiErrorFromInvalidMove(
-      `Moraš upisati ${game.directedRowKey} u kolonu Dirigovana (D)`
-    );
+  const directedCheck = validateDirectedSubmit(
+    game.directedRowKey,
+    input.rowKey,
+    "DOJAVA"
+  );
+  if (!directedCheck.valid) {
+    throw apiErrorFromInvalidMove(directedCheck.message);
   }
 
   const directedRow = game.directedRowKey as FillableRowKey;

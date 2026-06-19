@@ -105,10 +105,20 @@ export function LiveTurnBanner({
       </div>
 
       {directed && (
-        <p className="mt-2 text-xs text-[var(--y-text-muted)]">
-          🎯 Dirigovano polje: {ROW_LABELS[directed.rowKey]} → D kolona (
-          {directed.directorDisplayName})
-        </p>
+        <div className="scorecard-banner-directed mt-2 rounded-xl border px-3 py-2 text-sm">
+          <strong>Dirigovano polje:</strong> {ROW_LABELS[directed.rowKey]}
+          {isMyTurn && directed.executorGamePlayerId === state.currentPlayer.gamePlayerId ? (
+            <span className="text-[var(--y-text-muted)]">
+              {" "}
+              — upiši u kolonu D igrača {directed.directorDisplayName}
+            </span>
+          ) : (
+            <span className="text-[var(--y-text-muted)]">
+              {" "}
+              — kolona D ({directed.directorDisplayName})
+            </span>
+          )}
+        </div>
       )}
 
       {najavaTarget && (
