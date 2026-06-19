@@ -5,11 +5,11 @@ import {
   hasAnyNumberRowEntries,
   hasMaxMinForRazlika,
 } from "@/lib/yamb/scoring";
-import type { ColumnTotals, FillableRowKey } from "@/lib/yamb/types";
+import type { ColumnTotals, FillableRowKey, ScoreEntry } from "@/lib/yamb/types";
 
 export function getSubtotalCellValue(
   totals: ColumnTotals,
-  entries: Partial<Record<FillableRowKey, { score: number }>>,
+  entries: Partial<Record<FillableRowKey, ScoreEntry>>,
   row: ScorecardRowKey
 ): string {
   switch (row) {
