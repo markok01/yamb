@@ -109,8 +109,8 @@ export interface ScorecardTableProps {
   directedPlay?: ScorecardInteractionContext["directedPlay"];
   isDirectingMode?: boolean;
   isDirectedExecutor?: boolean;
-  scorecardGamePlayerId?: string;
-  onDirectedMismatch?: () => void;
+  nextPlayerColumns?: ScorecardInteractionContext["nextPlayerColumns"];
+  directedTargetOnThisCard?: boolean;
 }
 
 export function ScorecardTable(props: ScorecardTableProps) {
@@ -147,8 +147,8 @@ export function ScorecardTable(props: ScorecardTableProps) {
     directedPlay = null,
     isDirectingMode = false,
     isDirectedExecutor = false,
-    scorecardGamePlayerId,
-    onDirectedMismatch,
+    nextPlayerColumns = null,
+    directedTargetOnThisCard = false,
   } = props;
 
   const [hoveredRow, setHoveredRow] = useState<ScorecardRowKey | null>(null);
@@ -202,7 +202,8 @@ export function ScorecardTable(props: ScorecardTableProps) {
       directedPlay,
       isDirectingMode,
       isDirectedExecutor,
-      scorecardGamePlayerId: scorecardGamePlayerId ?? scorecard.gamePlayerId,
+      nextPlayerColumns,
+      directedTargetOnThisCard,
     }),
     [
       isMyTurn,
@@ -223,8 +224,8 @@ export function ScorecardTable(props: ScorecardTableProps) {
       directedPlay,
       isDirectingMode,
       isDirectedExecutor,
-      scorecardGamePlayerId,
-      scorecard.gamePlayerId,
+      nextPlayerColumns,
+      directedTargetOnThisCard,
     ]
   );
 
@@ -303,17 +304,7 @@ export function ScorecardTable(props: ScorecardTableProps) {
     if (!col) return;
     const ui = getCellUiState(col, scorecard.columns, rowKey, ctx);
 
-    if (!ui.allowed) {
-      if (
-        isDirectedExecutor &&
-        directedPlay &&
-        col.columnType === "DOJAVA" &&
-        rowKey !== directedPlay.rowKey
-      ) {
-        onDirectedMismatch?.();
-      }
-      return;
-    }
+    if (!ui.allowed) return;
 
     const cellValue = getCellValue(scorecard, columnType, rowKey);
     const isFilled = isCorrection ?? cellValue !== "";
@@ -597,10 +588,12 @@ export function ScorecardTable(props: ScorecardTableProps) {
                         col.columnType === "NAJAVA" &&
                         turn?.najavaRowKey === row &&
                         !isEmpty;
-                      const isClickableTarget = !readOnly && isInteractive && ui.allowed;
+                      const isDirectedTarget = ui.status === "directed-target";
+                      const isClickableTarget =
+                        !readOnly && isInteractive && ui.allowed;
                       const showPulse =
                         showPlayHints &&
-                        ui.allowed &&
+                        (ui.allowed || isDirectedTarget) &&
                         isInteractive &&
                         isEmpty &&
                         !readOnly;
@@ -624,33 +617,28 @@ export function ScorecardTable(props: ScorecardTableProps) {
                           ? String(ui.suggestedScore ?? value)
                           : value;
 
-                      const isDirectedTarget =
-                        ui.status === "directed-target" && isEmpty;
-                      const isDirectedLocked = ui.status === "directed-locked";
-
                       return (
                         <td
                           key={`${col.columnType}-${row}`}
                           className={[
                             "relative px-1 py-1 text-center tabular-nums",
-                            isDirectedTarget
-                              ? "scorecard-cell-directed"
-                              : isDirectedLocked
-                                ? "scorecard-cell-directed-locked"
-                                : isActiveCol && isEmpty
-                                  ? "scorecard-cell-active"
-                                  : crossHighlight
-                                    ? "scorecard-cell-hover"
-                                    : "scorecard-cell",
+                            isActiveCol && isEmpty
+                              ? "scorecard-cell-active"
+                              : crossHighlight
+                                ? "scorecard-cell-hover"
+                                : "scorecard-cell",
                             isEditing ? "scorecard-cell-active" : "",
                             isClickableTarget && !isEditing
                               ? "cursor-pointer"
-                              : showDisabled || isDirectedLocked
+                              : showDisabled
                                 ? "scorecard-cell-disabled cursor-not-allowed"
                                 : readOnly
                                   ? "cursor-default"
                                   : "cursor-default",
                             showPulse && !isEditing ? "scorecard-cell-pulse" : "",
+                            isDirectedTarget && !isEditing
+                              ? "scorecard-cell-directed"
+                              : "",
                           ].join(" ")}
                           onPointerDown={(e) => {
                             if (readOnly || !ui.allowed) return;
@@ -711,15 +699,6 @@ export function ScorecardTable(props: ScorecardTableProps) {
                               title="Najavljeno"
                             >
                               🔒
-                            </span>
-                          )}
-                          {isDirectedTarget && (
-                            <span
-                              className="absolute right-1 top-1 text-[10px]"
-                              style={{ color: "var(--y-accent)" }}
-                              title="Dirigovano polje"
-                            >
-                              🎯
                             </span>
                           )}
                         </td>

@@ -192,11 +192,6 @@ export function validateNajavaBeforeRoll(
     return fail("NAJAVA_INVALID", ERROR_MESSAGES.NAJAVA_INVALID);
   }
 
-  if (allColumns) {
-    const directCheck = validateNajavaDojavaTarget(allColumns, rowKey);
-    if (!directCheck.valid) return directCheck;
-  }
-
   return ok();
 }
 
@@ -357,21 +352,6 @@ export function validateNewTurn(
 ): ValidationResult {
   if (activeTurn && activeTurn.status === "ACTIVE") {
     return fail("TURN_IN_PROGRESS", ERROR_MESSAGES.TURN_IN_PROGRESS);
-  }
-  return ok();
-}
-
-export function validateDirectedSubmit(
-  directedRowKey: FillableRowKey | null | undefined,
-  targetRow: FillableRowKey,
-  columnType: ColumnType
-): ValidationResult {
-  if (!directedRowKey) return ok();
-  if (columnType !== "DOJAVA") {
-    return fail("DIRECTED_COLUMN_REQUIRED", ERROR_MESSAGES.DOJAVA_REQUIRED);
-  }
-  if (targetRow !== directedRowKey) {
-    return fail("DIRECTED_ROW_MISMATCH", ERROR_MESSAGES.DIRECTED_ROW_MISMATCH);
   }
   return ok();
 }

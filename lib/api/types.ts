@@ -25,6 +25,7 @@ export interface GameInfo {
   diceMode: DiceMode;
   stateVersion: number;
   leagueId: string | null;
+  /** Polje koje sledeći igrač mora odigrati u koloni D posle najave */
   directedRowKey: FillableRowKey | null;
   startedAt: string | null;
   finishedAt: string | null;

@@ -54,13 +54,13 @@ export function getTurnPhaseInfo(
       return {
         phase: "DIRECTED_EXECUTION",
         label: "Dirigovani potez",
-        detail: `${player.displayName} mora odigrati ${ROW_LABELS[directed.rowKey]} (D kolona: ${directed.directorDisplayName}).`,
+        detail: `${player.displayName} mora odigrati ${ROW_LABELS[directed.rowKey]} u koloni Dirigovana (D).`,
       };
     }
     return {
       phase: "DIRECTED_EXECUTION",
       label: "Dirigovani upis",
-      detail: `${player.displayName} upisuje ${ROW_LABELS[directed.rowKey]} u D kolonu igrača ${directed.directorDisplayName}.`,
+      detail: `${player.displayName} upisuje ${ROW_LABELS[directed.rowKey]} u svoju kolonu Dirigovana (D).`,
     };
   }
 
@@ -180,8 +180,8 @@ export function getLiveTurnMessage(
     case "DIRECTED_EXECUTION":
       if (!directed) return info.detail ?? null;
       return isMe
-        ? `Dirigovano: upiši ${ROW_LABELS[directed.rowKey]} u kolonu D igrača ${directed.directorDisplayName}.`
-        : `${name} izvršava dirigu — ${ROW_LABELS[directed.rowKey]} u kolonu D…`;
+        ? `Dirigovano polje: ${ROW_LABELS[directed.rowKey]} — upiši rezultat u svoju kolonu Dirigovana (D).`
+        : `${name} mora odigrati ${ROW_LABELS[directed.rowKey]} u koloni Dirigovana (D)…`;
     case "PICKING_COLUMN":
       return isMe
         ? "Tvoj potez — klikni polje da započneš."

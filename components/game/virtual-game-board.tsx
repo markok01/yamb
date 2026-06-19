@@ -18,7 +18,10 @@ import {
 import { useAiOpponent } from "@/hooks/use-ai-opponent";
 import type { AiDifficulty } from "@/lib/yamb/ai-player";
 import { COLUMN_NAMES, ROW_LABELS } from "@/lib/ui/labels";
-import { DIRECTED_ROW_MISMATCH_MESSAGE } from "@/lib/ui/directed-play";
+import {
+  DIRECTED_ROW_MISMATCH_MESSAGE,
+  getNextPlayerColumns,
+} from "@/lib/ui/directed-play";
 import { isVirtualRollingPhase } from "@/lib/ui/virtual-roll-first";
 import { createEmptyDice, createEmptyHeldDice } from "@/lib/yamb/dice";
 import { useDiceStore } from "@/stores/dice-store";
@@ -401,7 +404,12 @@ export function VirtualGameBoard({
     directedPlay,
     isDirectingMode,
     isDirectedExecutor,
-    onDirectedMismatch: () => setErrorMessage(DIRECTED_ROW_MISMATCH_MESSAGE),
+    nextPlayerColumns: myScorecard
+      ? getNextPlayerColumns(state, myScorecard.gamePlayerId)
+      : null,
+    directedTargetOnThisCard:
+      !!directedPlay &&
+      myScorecard?.gamePlayerId === directedPlay.executorGamePlayerId,
     isLoading,
     inlineSubmitting,
     openInlineCell,

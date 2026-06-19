@@ -13,7 +13,10 @@ import {
   useDeleteScore,
 } from "@/hooks/use-game-queries";
 import { COLUMN_NAMES, ROW_LABELS } from "@/lib/ui/labels";
-import { DIRECTED_ROW_MISMATCH_MESSAGE } from "@/lib/ui/directed-play";
+import {
+  DIRECTED_ROW_MISMATCH_MESSAGE,
+  getNextPlayerColumns,
+} from "@/lib/ui/directed-play";
 import { useGameUiStore } from "@/stores/game-ui-store";
 import { ApiClientError } from "@/lib/api/client";
 import { MultiplayerScorecards } from "@/components/game/multiplayer-scorecards";
@@ -266,8 +269,12 @@ export function PhysicalGameBoard({
             directedPlay,
             isDirectingMode,
             isDirectedExecutor,
-            onDirectedMismatch: () =>
-              setErrorMessage(DIRECTED_ROW_MISMATCH_MESSAGE),
+            nextPlayerColumns: myScorecard
+              ? getNextPlayerColumns(state, myScorecard.gamePlayerId)
+              : null,
+            directedTargetOnThisCard:
+              !!directedPlay &&
+              myScorecard?.gamePlayerId === directedPlay.executorGamePlayerId,
             isLoading,
             inlineSubmitting,
             openInlineCell,

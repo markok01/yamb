@@ -15,7 +15,6 @@ import { isScorecardComplete } from "@/lib/yamb/columns";
 import type { ColumnType, Dice, DiceMode, FillableRowKey } from "@/lib/yamb/types";
 import {
   validateColumnAccess,
-  validateDirectedSubmit,
   validatePhysicalScore,
   validateScoreCorrection,
   validateScoreForDice,
@@ -692,6 +691,8 @@ export async function setNajava(
     throw apiErrorFromInvalidMove(result.message);
   }
 
+  await assertExecutorDojavaAvailable(gameId, rowKey);
+
   const db = getDb();
   await db
     .update(schema.turns)
@@ -806,6 +807,33 @@ export async function toggleHold(gameId: string, userId: string, index: number) 
   return { heldDice: turn.heldDice };
 }
 
+async function assertExecutorDojavaAvailable(
+  gameId: string,
+  rowKey: FillableRowKey
+): Promise<string> {
+  const game = await getGameOrThrow(gameId);
+  const players = await getGamePlayers(gameId);
+  const executorGamePlayerId = nextGamePlayerId(game, players);
+  const executorEngine = await loadEngineForPlayer(executorGamePlayerId);
+  const dojavaColumn = executorEngine.columns.find(
+    (c) => c.columnType === "DOJAVA"
+  );
+  if (!dojavaColumn || !canFillCell(dojavaColumn, rowKey)) {
+    throw apiErrorFromInvalidMove(ERROR_MESSAGES.NAJAVA_DIRECT_UNAVAILABLE);
+  }
+
+  const accessCheck = validateColumnAccess(
+    dojavaColumn,
+    executorEngine.columns,
+    rowKey
+  );
+  if (!accessCheck.valid) {
+    throw apiErrorFromInvalidMove(accessCheck.message);
+  }
+
+  return executorGamePlayerId;
+}
+
 async function scheduleDirectedPlayFromNajava(
   gameId: string,
   directorGamePlayerId: string,
@@ -820,19 +848,10 @@ async function scheduleDirectedPlayFromNajava(
     );
   }
 
-  const engine = await loadEngineForPlayer(directorGamePlayerId);
-  const dojavaColumn = engine.columns.find((c) => c.columnType === "DOJAVA");
-  if (!dojavaColumn || !canFillCell(dojavaColumn, rowKey)) {
-    throw apiErrorFromInvalidMove(ERROR_MESSAGES.NAJAVA_DIRECT_UNAVAILABLE);
-  }
-
-  const accessCheck = validateColumnAccess(dojavaColumn, engine.columns, rowKey);
-  if (!accessCheck.valid) {
-    throw apiErrorFromInvalidMove(accessCheck.message);
-  }
-
-  const players = await getGamePlayers(gameId);
-  const executorGamePlayerId = nextGamePlayerId(game, players);
+  const executorGamePlayerId = await assertExecutorDojavaAvailable(
+    gameId,
+    rowKey
+  );
 
   const db = getDb();
   await db
@@ -1049,19 +1068,12 @@ async function submitDirectedTurnScore(
 ) {
   assertDirectedExecutor(game, executorGamePlayerId);
 
-  const directedCheck = validateDirectedSubmit(
-    game.directedRowKey,
-    input.rowKey,
-    input.columnType ?? "DOJAVA"
-  );
-  if (!directedCheck.valid) {
-    throw apiErrorFromInvalidMove(directedCheck.message);
+  if (input.rowKey !== game.directedRowKey) {
+    throw apiErrorFromInvalidMove(ERROR_MESSAGES.DIRECTED_ROW_MISMATCH);
   }
 
   if (input.columnType && input.columnType !== "DOJAVA") {
-    throw apiErrorFromInvalidMove(
-      "Dirigovani potez mora biti upisan u kolonu Dirigovana (D)"
-    );
+    throw apiErrorFromInvalidMove(ERROR_MESSAGES.DIRECTED_ROW_MISMATCH);
   }
 
   const turnRow = await getActiveTurnRow(gameId);
@@ -1091,18 +1103,18 @@ async function submitDirectedTurnScore(
     throw apiErrorFromInvalidMove(scoreCheck.message);
   }
 
-  const directorEngine = await loadEngineForPlayer(game.directorGamePlayerId!);
-  const directorColumn = directorEngine.columns.find(
+  const executorEngine = await loadEngineForPlayer(executorGamePlayerId);
+  const executorColumn = executorEngine.columns.find(
     (c) => c.columnType === "DOJAVA"
   );
-  if (!directorColumn || !canFillCell(directorColumn, directedRow)) {
+  if (!executorColumn || !canFillCell(executorColumn, directedRow)) {
     throw apiErrorFromInvalidMove("Polje u koloni Dirigovana više nije dostupno");
   }
 
   const db = getDb();
   await db.insert(schema.scoreEntries).values({
     id: newId(),
-    gamePlayerId: game.directorGamePlayerId!,
+    gamePlayerId: executorGamePlayerId,
     columnType: "DOJAVA",
     rowKey: directedRow,
     score,
@@ -1149,13 +1161,8 @@ async function submitDirectedPhysicalScore(
 ) {
   assertDirectedExecutor(game, executorGamePlayerId);
 
-  const directedCheck = validateDirectedSubmit(
-    game.directedRowKey,
-    input.rowKey,
-    "DOJAVA"
-  );
-  if (!directedCheck.valid) {
-    throw apiErrorFromInvalidMove(directedCheck.message);
+  if (input.rowKey !== game.directedRowKey) {
+    throw apiErrorFromInvalidMove(ERROR_MESSAGES.DIRECTED_ROW_MISMATCH);
   }
 
   const directedRow = game.directedRowKey as FillableRowKey;
@@ -1173,18 +1180,18 @@ async function submitDirectedPhysicalScore(
     throw apiErrorFromInvalidMove(scoreCheck.message);
   }
 
-  const directorEngine = await loadEngineForPlayer(game.directorGamePlayerId!);
-  const directorColumn = directorEngine.columns.find(
+  const executorEngine = await loadEngineForPlayer(executorGamePlayerId);
+  const executorColumn = executorEngine.columns.find(
     (c) => c.columnType === "DOJAVA"
   );
-  if (!directorColumn || !canFillCell(directorColumn, directedRow)) {
+  if (!executorColumn || !canFillCell(executorColumn, directedRow)) {
     throw apiErrorFromInvalidMove("Polje u koloni Dirigovana više nije dostupno");
   }
 
   const db = getDb();
   await db.insert(schema.scoreEntries).values({
     id: newId(),
-    gamePlayerId: game.directorGamePlayerId!,
+    gamePlayerId: executorGamePlayerId,
     columnType: "DOJAVA",
     rowKey: directedRow,
     score: input.score,
