@@ -2,8 +2,7 @@ import {
   SUM_1_TO_6_BONUS,
   SUM_1_TO_6_BONUS_THRESHOLD,
 } from "./constants";
-import { countValue } from "./dice";
-import type { ColumnTotals, Dice, FillableRowKey, ScoreEntry } from "./types";
+import type { ColumnTotals, FillableRowKey, ScoreEntry } from "./types";
 
 const NUMBER_ROWS: readonly FillableRowKey[] = [
   "ROW_1",
@@ -42,24 +41,33 @@ export function calculateSum1to6(
 }
 
 /**
- * RAZLIKA: (Maximum - Minimum) × broj jedinica.
- * Broj jedinica = broj kockica sa vrednošću 1 u bacanju za Minimum polje.
- * Ako Minimum ≤ 5 ili jedinice ≤ 1 → Razlika = 0.
+ * RAZLIKA: (Maximum − Minimum) × rezultat u polju „1“ (jedinice).
+ * Ako su jedinice 0 → razlika je 0.
  */
 export function calculateRazlika(
   entries: Partial<Record<FillableRowKey, ScoreEntry>>
 ): number {
+  if (!entries["MAXIMUM"] || !entries["MINIMUM"]) return 0;
+
   const maximum = getEntryScore(entries, "MAXIMUM");
   const minimum = getEntryScore(entries, "MINIMUM");
-  const minimumEntry = entries["MINIMUM"];
+  const onesScore = getEntryScore(entries, "ROW_1");
 
-  if (!minimumEntry) return 0;
-  if (minimum <= 5) return 0;
+  if (onesScore === 0) return 0;
 
-  const onesCount = countValue(minimumEntry.dice, 1);
-  if (onesCount <= 1) return 0;
+  return (maximum - minimum) * onesScore;
+}
 
-  return (maximum - minimum) * onesCount;
+export function hasAnyNumberRowEntries(
+  entries: Partial<Record<FillableRowKey, ScoreEntry>>
+): boolean {
+  return NUMBER_ROWS.some((row) => entries[row] !== undefined);
+}
+
+export function hasAnyCombinationEntries(
+  entries: Partial<Record<FillableRowKey, ScoreEntry>>
+): boolean {
+  return COMBINATION_ROWS.some((row) => entries[row] !== undefined);
 }
 
 /** Σ(kombinacije): Kenta + Triling + Ful + Poker + Jamb. */

@@ -7,6 +7,7 @@ export type LeagueNotificationType =
   | "member_left"
   | "member_removed"
   | "game_added"
+  | "game_cancelled"
   | "admin_changed"
   | "season_changed"
   | "league_archived"

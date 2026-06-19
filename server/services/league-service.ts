@@ -24,6 +24,7 @@ import {
 } from "./league/league-notifications";
 import { computeLeagueStandings, computeMemberStats } from "./league/league-standings";
 import { computeLeagueStatistics } from "./league/league-stats";
+import { bumpGameStateVersion } from "./stats-service";
 
 export { computeLeagueStandings as getLeagueStandings };
 
@@ -277,7 +278,7 @@ export async function createLeagueGame(
 }
 
 export async function getActiveLeagueGames(leagueId: string, userId: string) {
-  await assertMember(leagueId, userId);
+  const membership = await assertMember(leagueId, userId);
   const db = getDb();
 
   const rows = await db
@@ -329,8 +330,75 @@ export async function getActiveLeagueGames(leagueId: string, userId: string) {
       isParticipant: (playersByGame.get(g.gameId) ?? []).some(
         (p) => p.userId === userId
       ),
+      canCancel:
+        g.hostUserId === userId ||
+        membership.role === "OWNER" ||
+        membership.role === "ADMIN",
     })),
   };
+}
+
+export async function cancelLeagueGame(
+  leagueId: string,
+  gameId: string,
+  userId: string
+) {
+  const league = await getLeagueRow(leagueId);
+  assertWritable(league.status as "ACTIVE" | "FINISHED" | "ARCHIVED");
+  const membership = await assertMember(leagueId, userId);
+
+  const db = getDb();
+  const game = await db.query.games.findFirst({
+    where: eq(schema.games.id, gameId),
+  });
+
+  if (!game || game.leagueId !== leagueId) {
+    throw new ApiError(404, "GAME_NOT_FOUND", "Liga partija nije pronađena");
+  }
+
+  if (game.status !== "LOBBY" && game.status !== "IN_PROGRESS") {
+    throw new ApiError(
+      400,
+      "GAME_NOT_ACTIVE",
+      "Samo aktivne partije mogu biti otkazane"
+    );
+  }
+
+  const canCancel =
+    game.hostUserId === userId ||
+    membership.role === "OWNER" ||
+    membership.role === "ADMIN";
+
+  if (!canCancel) {
+    throw new ApiError(
+      403,
+      "FORBIDDEN",
+      "Samo domaćin ili administrator lige može otkazati partiju"
+    );
+  }
+
+  await db
+    .update(schema.games)
+    .set({
+      status: "CANCELLED",
+      finishedAt: new Date(),
+    })
+    .where(eq(schema.games.id, gameId));
+
+  await bumpGameStateVersion(gameId);
+
+  const actor = await db.query.users.findFirst({
+    where: eq(schema.users.id, userId),
+  });
+
+  await addLeagueNotification(
+    leagueId,
+    "game_cancelled",
+    `${actor?.displayName ?? "Igrač"} je otkazao liga meč (${game.roomCode})`,
+    userId
+  );
+
+  return { gameId, roomCode: game.roomCode, cancelled: true };
 }
 
 export async function getLeague(leagueId: string, userId: string) {

@@ -219,6 +219,7 @@ export interface LeagueActiveGame {
   createdAt: string;
   players: Array<{ userId: string; displayName: string }>;
   isParticipant: boolean;
+  canCancel: boolean;
 }
 
 export function useLeagueActiveGames(leagueId: string, userId: string | null) {
@@ -244,6 +245,23 @@ export function useCreateLeagueGame(leagueId: string, userId: string | null) {
           method: "POST",
           userId,
           body: JSON.stringify(body),
+        }
+      ),
+    onSuccess: () => {
+      invalidateLeague(qc, leagueId);
+    },
+  });
+}
+
+export function useCancelLeagueGame(leagueId: string, userId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (gameId: string) =>
+      apiFetch<{ gameId: string; roomCode: string; cancelled: boolean }>(
+        `/api/league/${leagueId}/games/${gameId}`,
+        {
+          method: "DELETE",
+          userId,
         }
       ),
     onSuccess: () => {

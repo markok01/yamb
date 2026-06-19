@@ -4,6 +4,7 @@ import {
   validateColumnAccess,
   validateManualScore,
   validateMaksimalnaScore,
+  validateMinimumScore,
   validateNajavaBeforeRoll,
   validateNajavaDojavaTarget,
   validateNajavaSubmit,
@@ -39,6 +40,16 @@ describe("validation", () => {
 
       const zero = validateManualScore("KENTA", [1, 1, 1, 1, 1], 0, "RUCNA");
       expect(zero.valid).toBe(true);
+    });
+  });
+
+  describe("MINIMUM", () => {
+    it("rejects scores below 5", () => {
+      expect(validateMinimumScore("MINIMUM", 4).valid).toBe(false);
+      expect(validateMinimumScore("MINIMUM", 5).valid).toBe(true);
+      expect(validateManualScore("MINIMUM", [1, 1, 1, 1, 1], 4, "RUCNA").valid).toBe(
+        false
+      );
     });
   });
 

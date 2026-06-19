@@ -1,4 +1,8 @@
-import { MAKSIMALNA_ALLOWED_SCORES, ERROR_MESSAGES } from "./constants";
+import {
+  MAKSIMALNA_ALLOWED_SCORES,
+  ERROR_MESSAGES,
+  MINIMUM_MIN_SCORE,
+} from "./constants";
 import { calculateAutoScore, isCombinationValid } from "./combinations";
 import {
   canFillCell,
@@ -23,6 +27,16 @@ function fail(errorCode: string, message: string): ValidationResult {
 
 function ok(): ValidationResult {
   return { valid: true };
+}
+
+export function validateMinimumScore(
+  rowKey: FillableRowKey,
+  score: number
+): ValidationResult {
+  if (rowKey === "MINIMUM" && score < MINIMUM_MIN_SCORE) {
+    return fail("MINIMUM_TOO_LOW", ERROR_MESSAGES.MINIMUM_TOO_LOW);
+  }
+  return ok();
 }
 
 export function validateMaksimalnaScore(
@@ -50,6 +64,9 @@ export function validateScoreForDice(
     return validateMaksimalnaScore(rowKey, score);
   }
 
+  const minimumCheck = validateMinimumScore(rowKey, score);
+  if (!minimumCheck.valid) return minimumCheck;
+
   const autoScore = calculateAutoScore(rowKey, dice);
   if (score !== autoScore) {
     return fail("SCORE_MISMATCH", ERROR_MESSAGES.SCORE_MISMATCH);
@@ -71,6 +88,9 @@ export function validateManualScore(
   if (columnType === "MAKSIMALNA") {
     return validateMaksimalnaScore(rowKey, score);
   }
+
+  const minimumCheck = validateMinimumScore(rowKey, score);
+  if (!minimumCheck.valid) return minimumCheck;
 
   // RUČNA: igrač unosi rezultat, sistem validira kombinaciju
   if (!isValidDice(dice)) {
@@ -299,6 +319,9 @@ export function validateScoreCorrection(
   if (columnType === "MAKSIMALNA") {
     return validateMaksimalnaScore(rowKey, score);
   }
+
+  const minimumCheck = validateMinimumScore(rowKey, score);
+  if (!minimumCheck.valid) return minimumCheck;
 
   if (!Number.isInteger(score) || score < 0) {
     return fail("INVALID_SCORE", "Rezultat mora biti ceo broj ≥ 0");

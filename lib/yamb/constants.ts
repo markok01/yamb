@@ -99,6 +99,9 @@ export const MAKSIMALNA_ALLOWED_SCORES: Readonly<
 export const SUM_1_TO_6_BONUS_THRESHOLD = 60;
 export const SUM_1_TO_6_BONUS = 30;
 
+/** Minimum polje — rezultat ne sme biti manji od 5. */
+export const MINIMUM_MIN_SCORE = 5;
+
 export const MAX_ROLLS_PER_TURN = 3;
 export const DICE_COUNT = 6;
 /** Za bodovanje se koristi najboljih 5 od 6 kockica. */
@@ -129,6 +132,7 @@ export const ERROR_MESSAGES = {
   NO_ROLL_BEFORE_SCORE: "Ne može upis pre prvog bacanja",
   TURN_IN_PROGRESS: "Ne može novi potez dok se ne završi trenutni",
   MAKSIMALNA_INVALID: "Vrednost nije u dozvoljenom skupu",
+  MINIMUM_TOO_LOW: "Minimum ne sme biti manji od 5",
   COMBINATION_INVALID: "Kombinacija ne odgovara kockicama",
   SCORE_MISMATCH: "Uneti rezultat ne odgovara kockicama",
   CELL_ALREADY_FILLED: "Polje je već popunjeno",

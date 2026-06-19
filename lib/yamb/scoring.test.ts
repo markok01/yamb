@@ -47,24 +47,25 @@ describe("scoring", () => {
     expect(result.bonus).toBe(30);
   });
 
-  it("calculates Razlika as (Max-Min) × ones in Minimum dice", () => {
+  it("calculates Razlika as (Max-Min) × ones row score", () => {
     const entries = {
+      ROW_1: entry("ROW_1", 3, [1, 1, 1, 2, 3]),
       MAXIMUM: entry("MAXIMUM", 28, [6, 6, 6, 5, 5]),
       MINIMUM: entry("MINIMUM", 8, [1, 1, 1, 2, 3]),
     };
-    // (28-8) × 3 = 60
     expect(calculateRazlika(entries)).toBe(60);
   });
 
-  it("returns Razlika 0 when Minimum <= 5", () => {
+  it("returns Razlika 0 when ROW_1 is 0", () => {
     const entries = {
+      ROW_1: entry("ROW_1", 0, [2, 3, 4, 5, 6]),
       MAXIMUM: entry("MAXIMUM", 25, [6, 6, 5, 4, 4]),
-      MINIMUM: entry("MINIMUM", 5, [1, 1, 1, 1, 1]),
+      MINIMUM: entry("MINIMUM", 8, [1, 2, 2, 2, 1]),
     };
     expect(calculateRazlika(entries)).toBe(0);
   });
 
-  it("returns Razlika 0 when ones count <= 1", () => {
+  it("returns Razlika 0 when ROW_1 is not filled", () => {
     const entries = {
       MAXIMUM: entry("MAXIMUM", 28, [6, 6, 6, 5, 5]),
       MINIMUM: entry("MINIMUM", 10, [2, 2, 2, 2, 2]),
@@ -101,12 +102,26 @@ describe("scoring", () => {
     };
 
     const totals = calculateColumnTotal(entries);
-    // sum1to6 = 59, no bonus
     expect(totals.sum1to6).toBe(59);
     expect(totals.sum1to6Bonus).toBe(0);
-    expect(totals.razlika).toBe(60);
+    expect(totals.razlika).toBe(200);
     expect(totals.sumCombinations).toBe(66);
-    expect(totals.columnTotal).toBe(59 + 0 + 60 + 66);
+    expect(totals.columnTotal).toBe(59 + 0 + 200 + 66);
+  });
+
+  it("shows combined Σ(1-6) with bonus in column total", () => {
+    const entries = {
+      ROW_1: entry("ROW_1", 5, [1, 1, 1, 1, 1]),
+      ROW_2: entry("ROW_2", 10, [2, 2, 2, 2, 2]),
+      ROW_3: entry("ROW_3", 9, [3, 3, 3, 1, 2]),
+      ROW_4: entry("ROW_4", 12, [4, 4, 4, 1, 1]),
+      ROW_5: entry("ROW_5", 15, [5, 5, 5, 1, 2]),
+      ROW_6: entry("ROW_6", 12, [6, 6, 1, 2, 3]),
+    };
+    const totals = calculateColumnTotal(entries);
+    expect(totals.sum1to6).toBe(63);
+    expect(totals.sum1to6Bonus).toBe(30);
+    expect(totals.columnTotal).toBe(93);
   });
 
   it("calculates FINAL as sum of column totals", () => {

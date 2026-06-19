@@ -16,6 +16,10 @@ import {
 import { FILLABLE_ROWS_TOP_TO_BOTTOM } from "@/lib/yamb/constants";
 import { createEmptyDice } from "@/lib/yamb/dice";
 import { needsInlineScoreEntry } from "@/lib/ui/inline-score";
+import {
+  getScorecardRowTotal,
+  getSubtotalCellValue,
+} from "@/lib/ui/scorecard-values";
 import { CellInlineInput } from "./cell-inline-input";
 import { ScorecardMobile } from "./scorecard-mobile";
 
@@ -49,28 +53,7 @@ function getCellValue(
     return entry !== undefined ? String(entry.score) : "";
   }
 
-  switch (row) {
-    case "SUM_1_6": {
-      const { sum1to6, sum1to6Bonus } = column.totals;
-      if (
-        sum1to6 === 0 &&
-        !Object.keys(column.entries).some((k) => k.startsWith("ROW_"))
-      ) {
-        return "";
-      }
-      return sum1to6Bonus > 0 ? `${sum1to6}+${sum1to6Bonus}` : String(sum1to6);
-    }
-    case "RAZLIKA":
-      return column.totals.razlika ? String(column.totals.razlika) : "";
-    case "SUM_COMBINATIONS":
-      return column.totals.sumCombinations
-        ? String(column.totals.sumCombinations)
-        : "";
-    case "UKUPNO":
-      return column.totals.columnTotal ? String(column.totals.columnTotal) : "";
-    default:
-      return "";
-  }
+  return getSubtotalCellValue(column.totals, column.entries, row);
 }
 
 export interface ScorecardTableProps {
@@ -710,9 +693,21 @@ export function ScorecardTable(props: ScorecardTableProps) {
                     })}
 
                     <td
-                      className="scorecard-cell px-2 py-2 text-center tabular-nums font-semibold"
-                      style={{ color: "var(--sc-text-muted)" }}
-                    />
+                      className={[
+                        "scorecard-cell px-2 py-2 text-center tabular-nums font-semibold",
+                        isSubtotal || isGrandTotal
+                          ? "scorecard-cell-subtotal"
+                          : "",
+                      ].join(" ")}
+                      style={{
+                        color:
+                          isSubtotal || isGrandTotal
+                            ? "var(--sc-accent)"
+                            : "var(--sc-text-muted)",
+                      }}
+                    >
+                      {getScorecardRowTotal(scorecard, row) || null}
+                    </td>
                   </tr>
                 );
               })}

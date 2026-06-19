@@ -13,6 +13,9 @@ import {
   type ScorecardRowKey,
 } from "@/lib/ui/labels";
 import { FILLABLE_ROWS_TOP_TO_BOTTOM } from "@/lib/yamb/constants";
+import {
+  getSubtotalCellValue,
+} from "@/lib/ui/scorecard-values";
 import { CellInlineInput } from "./cell-inline-input";
 
 function isFillableRow(row: ScorecardRowKey): row is FillableRowKey {
@@ -30,17 +33,7 @@ function getCellValue(
     const entry = column.entries[row];
     return entry !== undefined ? String(entry.score) : "";
   }
-  if (row === "SUM_1_6") {
-    const { sum1to6, sum1to6Bonus } = column.totals;
-    if (sum1to6 === 0 && !Object.keys(column.entries).some((k) => k.startsWith("ROW_")))
-      return "";
-    return sum1to6Bonus > 0 ? `${sum1to6}+${sum1to6Bonus}` : String(sum1to6);
-  }
-  if (row === "RAZLIKA") return column.totals.razlika ? String(column.totals.razlika) : "";
-  if (row === "SUM_COMBINATIONS")
-    return column.totals.sumCombinations ? String(column.totals.sumCombinations) : "";
-  if (row === "UKUPNO") return column.totals.columnTotal ? String(column.totals.columnTotal) : "";
-  return "";
+  return getSubtotalCellValue(column.totals, column.entries, row);
 }
 
 interface ScorecardMobileProps {

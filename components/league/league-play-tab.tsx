@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import type { DiceMode } from "@/lib/yamb/types";
 import type { LeagueInfo } from "@/lib/api/types";
 import {
+  useCancelLeagueGame,
   useCreateLeagueGame,
   useLeagueActiveGames,
 } from "@/hooks/use-user-queries";
@@ -26,6 +27,7 @@ export function LeaguePlayTab({
 }) {
   const router = useRouter();
   const createGame = useCreateLeagueGame(league.id, userId);
+  const cancelGame = useCancelLeagueGame(league.id, userId);
   const { data: activeData } = useLeagueActiveGames(league.id, userId);
 
   const otherMembers = useMemo(
@@ -71,8 +73,26 @@ export function LeaguePlayTab({
     }
   }
 
+  async function handleCancel(gameId: string, roomCode: string) {
+    setError(null);
+    if (
+      !window.confirm(
+        `Otkazati liga partiju ${roomCode}? Partija se briše za sve učesnike.`
+      )
+    ) {
+      return;
+    }
+    try {
+      await cancelGame.mutateAsync(gameId);
+    } catch (err) {
+      setError(
+        err instanceof ApiClientError ? err.message : "Greška pri brisanju partije"
+      );
+    }
+  }
+
   const activeGames = activeData?.games ?? [];
-  const myActive = activeGames.filter((g) => g.isParticipant);
+  const visibleActive = activeGames.filter((g) => g.isParticipant);
 
   return (
     <div className="space-y-4">
@@ -188,34 +208,50 @@ export function LeaguePlayTab({
         )}
       </GlassPanel>
 
-      {myActive.length > 0 && (
+      {visibleActive.length > 0 && (
         <GlassPanel padding="sm">
           <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-[var(--y-text-muted)]">
             Aktivne liga partije
           </h3>
           <ul className="space-y-2">
-            {myActive.map((g) => (
+            {visibleActive.map((g) => (
               <li key={g.gameId}>
-                <Link
-                  href={`/game/${g.gameId}`}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-[var(--y-surface-hover)] px-4 py-3 transition hover:bg-[var(--y-accent-soft)]"
-                >
-                  <div>
+                <div className="flex flex-wrap items-center gap-2 rounded-xl bg-[var(--y-surface-hover)] px-4 py-3">
+                  <Link
+                    href={`/game/${g.gameId}`}
+                    className="min-w-0 flex-1 transition hover:opacity-90"
+                  >
                     <span className="font-mono font-bold text-[var(--y-text)]">
                       {g.roomCode}
                     </span>
                     <p className="text-xs text-[var(--y-text-muted)]">
                       {g.players.map((p) => p.displayName).join(", ")}
                     </p>
+                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={g.status === "IN_PROGRESS" ? "live" : "default"}>
+                      {g.status === "IN_PROGRESS" ? "U toku" : "Čekaonica"}
+                    </Badge>
+                    {g.canCancel && !isArchived && (
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        disabled={cancelGame.isPending}
+                        onClick={() => handleCancel(g.gameId, g.roomCode)}
+                      >
+                        Obriši
+                      </Button>
+                    )}
                   </div>
-                  <Badge variant={g.status === "IN_PROGRESS" ? "live" : "default"}>
-                    {g.status === "IN_PROGRESS" ? "U toku" : "Čekaonica"}
-                  </Badge>
-                </Link>
+                </div>
               </li>
             ))}
           </ul>
         </GlassPanel>
+      )}
+
+      {error && visibleActive.length > 0 && (
+        <p className="text-sm text-red-400">{error}</p>
       )}
     </div>
   );
