@@ -85,7 +85,7 @@ export async function runAiStep(
 
   if (
     state.directedPlay &&
-    current.gamePlayerId !== state.directedPlay.directorGamePlayerId
+    current.gamePlayerId === state.directedPlay.executorGamePlayerId
   ) {
     const move = aiChooseMove(engine, difficulty, undefined, state.directedPlay);
     return executeAiMove(gameId, aiUserId, engine, move);

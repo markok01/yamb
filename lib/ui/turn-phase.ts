@@ -31,7 +31,7 @@ function isDirectedExecutor(state: GameState, gamePlayerId: string): boolean {
   if (!directed) return false;
   return (
     state.currentPlayer?.gamePlayerId === gamePlayerId &&
-    directed.directorGamePlayerId !== gamePlayerId
+    directed.executorGamePlayerId === gamePlayerId
   );
 }
 

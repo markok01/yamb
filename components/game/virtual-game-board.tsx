@@ -60,7 +60,7 @@ export function VirtualGameBoard({
   const isDirectedExecutor =
     !!directedPlay &&
     isMyTurn &&
-    myScorecard?.gamePlayerId !== directedPlay.directorGamePlayerId;
+    myScorecard?.gamePlayerId === directedPlay.executorGamePlayerId;
   const isDirectingMode =
     isMyTurn && !directedPlay && !isDirectedExecutor;
 

@@ -94,6 +94,9 @@ export const games = mysqlTable("games", {
   stateVersion: int("state_version").notNull().default(0),
   directedRowKey: mysqlEnum("directed_row_key", [...rowKeyValues]),
   directorGamePlayerId: varchar("director_game_player_id", { length: 36 }),
+  directedExecutorGamePlayerId: varchar("directed_executor_game_player_id", {
+    length: 36,
+  }),
   startedAt: timestamp("started_at"),
   finishedAt: timestamp("finished_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

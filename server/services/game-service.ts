@@ -150,6 +150,74 @@ async function advanceTurn(gameId: string, playerCount: number) {
     .where(eq(schema.games.id, gameId));
 }
 
+function nextGamePlayerId(
+  game: Awaited<ReturnType<typeof getGameOrThrow>>,
+  players: Awaited<ReturnType<typeof getGamePlayers>>
+): string {
+  const nextIndex = ((game.currentPlayerIndex ?? 0) + 1) % players.length;
+  const next = players[nextIndex];
+  if (!next) {
+    throw new ApiError(500, "INTERNAL_ERROR", "Sledeći igrač nije pronađen");
+  }
+  return next.player.id;
+}
+
+function hasPendingDirectedPlay(
+  game: Awaited<ReturnType<typeof getGameOrThrow>>
+): boolean {
+  return !!(game.directedRowKey && game.directorGamePlayerId);
+}
+
+function assertDirectedExecutor(
+  game: Awaited<ReturnType<typeof getGameOrThrow>>,
+  gamePlayerId: string
+) {
+  if (!hasPendingDirectedPlay(game)) return;
+  if (game.directedExecutorGamePlayerId) {
+    if (game.directedExecutorGamePlayerId !== gamePlayerId) {
+      throw new ApiError(
+        403,
+        "NOT_DIRECTED_EXECUTOR",
+        "Samo sledeći igrač može izvršiti dirigovani potez"
+      );
+    }
+    return;
+  }
+  if (game.directorGamePlayerId === gamePlayerId) {
+    throw new ApiError(
+      400,
+      "CANNOT_EXECUTE_OWN_DIRECTIVE",
+      "Ne možeš izvršiti sopstvenu dirigu"
+    );
+  }
+}
+
+function assertNotBlockedByDirectedPlay(
+  game: Awaited<ReturnType<typeof getGameOrThrow>>,
+  gamePlayerId: string,
+  startingColumn?: ColumnType
+) {
+  if (!hasPendingDirectedPlay(game)) return;
+  const isExecutor = game.directedExecutorGamePlayerId
+    ? game.directedExecutorGamePlayerId === gamePlayerId
+    : game.directorGamePlayerId !== gamePlayerId;
+  if (!isExecutor) return;
+  if (startingColumn === VIRTUAL_ROLL_PLACEHOLDER) return;
+  throw new ApiError(
+    400,
+    "DIRECTED_PLAY_REQUIRED",
+    `Posle najave moraš odigrati ${game.directedRowKey} u koloni Dirigovana (D).`
+  );
+}
+
+function clearDirectedPlayUpdate() {
+  return {
+    directedRowKey: null,
+    directorGamePlayerId: null,
+    directedExecutorGamePlayerId: null,
+  };
+}
+
 async function finishLeagueGameIfComplete(
   gameId: string,
   leagueId: string
@@ -464,16 +532,24 @@ export async function getGameState(gameId: string) {
     rowKey: FillableRowKey;
     directorGamePlayerId: string;
     directorDisplayName: string;
+    executorGamePlayerId: string;
   } | null = null;
   if (game.directedRowKey && game.directorGamePlayerId) {
     const director = players.find(
       (p) => p.player.id === game.directorGamePlayerId
     );
-    if (director) {
+    const executorId =
+      game.directedExecutorGamePlayerId ??
+      (currentPlayer &&
+      currentPlayer.player.id !== game.directorGamePlayerId
+        ? currentPlayer.player.id
+        : null);
+    if (director && executorId) {
       directedPlay = {
         rowKey: game.directedRowKey as FillableRowKey,
         directorGamePlayerId: game.directorGamePlayerId,
         directorDisplayName: director.user.displayName,
+        executorGamePlayerId: executorId,
       };
     }
   }
@@ -552,7 +628,8 @@ export async function startPlayerTurn(
   userId: string,
   columnType: ColumnType
 ) {
-  const { currentPlayer } = await assertCurrentPlayer(gameId, userId);
+  const { game, currentPlayer } = await assertCurrentPlayer(gameId, userId);
+  assertNotBlockedByDirectedPlay(game, currentPlayer.player.id, columnType);
 
   const existing = await getActiveTurnRow(gameId);
   if (existing) {
@@ -633,10 +710,22 @@ async function getRollEvents(turnId: string) {
 
 export async function rollDice(gameId: string, userId: string) {
   await assertVirtualDiceMode(gameId);
-  const { currentPlayer } = await assertCurrentPlayer(gameId, userId);
+  const { game, currentPlayer } = await assertCurrentPlayer(gameId, userId);
   let turnRow = await getActiveTurnRow(gameId);
 
   if (!turnRow) {
+    if (hasPendingDirectedPlay(game)) {
+      const isExecutor = game.directedExecutorGamePlayerId
+        ? game.directedExecutorGamePlayerId === currentPlayer.player.id
+        : game.directorGamePlayerId !== currentPlayer.player.id;
+      if (!isExecutor) {
+        throw new ApiError(
+          400,
+          "DIRECTED_PLAY_PENDING",
+          "Sačekaj da sledeći igrač završi dirigovani potez"
+        );
+      }
+    }
     await startPlayerTurn(gameId, userId, VIRTUAL_ROLL_PLACEHOLDER);
     turnRow = await getActiveTurnRow(gameId);
   }
@@ -740,12 +829,16 @@ async function scheduleDirectedPlayFromNajava(
     throw apiErrorFromInvalidMove(accessCheck.message);
   }
 
+  const players = await getGamePlayers(gameId);
+  const executorGamePlayerId = nextGamePlayerId(game, players);
+
   const db = getDb();
   await db
     .update(schema.games)
     .set({
       directedRowKey: rowKey,
       directorGamePlayerId,
+      directedExecutorGamePlayerId: executorGamePlayerId,
     })
     .where(eq(schema.games.id, gameId));
 }
@@ -791,15 +884,16 @@ export async function directPlay(
     throw new ApiError(400, "TURN_IN_PROGRESS", "Ne može dirige dok traje tuđ potez");
   }
 
+  const players = await getGamePlayers(gameId);
   await db
     .update(schema.games)
     .set({
       directedRowKey: rowKey,
       directorGamePlayerId: currentPlayer.player.id,
+      directedExecutorGamePlayerId: nextGamePlayerId(game, players),
     })
     .where(eq(schema.games.id, gameId));
 
-  const players = await getGamePlayers(gameId);
   await advanceTurn(gameId, players.length);
   await bumpGameStateVersion(gameId);
 
@@ -827,8 +921,24 @@ export async function submitTurnScore(
   const { currentPlayer } = await assertCurrentPlayer(gameId, userId);
   const game = await getGameOrThrow(gameId);
 
-  if (game.directedRowKey && game.directorGamePlayerId) {
-    return submitDirectedTurnScore(gameId, game, currentPlayer.player.id, userId, input);
+  if (hasPendingDirectedPlay(game)) {
+    const isExecutor = game.directedExecutorGamePlayerId
+      ? game.directedExecutorGamePlayerId === currentPlayer.player.id
+      : game.directorGamePlayerId !== currentPlayer.player.id;
+    if (isExecutor) {
+      return submitDirectedTurnScore(
+        gameId,
+        game,
+        currentPlayer.player.id,
+        userId,
+        input
+      );
+    }
+    throw new ApiError(
+      400,
+      "DIRECTED_PLAY_PENDING",
+      "Sačekaj da sledeći igrač završi dirigovani potez"
+    );
   }
 
   const turnRow = await getActiveTurnRow(gameId);
@@ -935,13 +1045,7 @@ async function submitDirectedTurnScore(
   userId: string,
   input: SubmitScoreInput
 ) {
-  if (game.directorGamePlayerId === executorGamePlayerId) {
-    throw new ApiError(
-      400,
-      "CANNOT_EXECUTE_OWN_DIRECTIVE",
-      "Ne možeš izvršiti sopstvenu dirigu"
-    );
-  }
+  assertDirectedExecutor(game, executorGamePlayerId);
 
   if (input.rowKey !== game.directedRowKey) {
     throw apiErrorFromInvalidMove(
@@ -1005,10 +1109,7 @@ async function submitDirectedTurnScore(
 
   await db
     .update(schema.games)
-    .set({
-      directedRowKey: null,
-      directorGamePlayerId: null,
-    })
+    .set(clearDirectedPlayUpdate())
     .where(eq(schema.games.id, gameId));
 
   await db
@@ -1041,13 +1142,7 @@ async function submitDirectedPhysicalScore(
   executorGamePlayerId: string,
   input: SubmitPhysicalInput
 ) {
-  if (game.directorGamePlayerId === executorGamePlayerId) {
-    throw new ApiError(
-      400,
-      "CANNOT_EXECUTE_OWN_DIRECTIVE",
-      "Ne možeš izvršiti sopstvenu dirigu"
-    );
-  }
+  assertDirectedExecutor(game, executorGamePlayerId);
 
   if (input.rowKey !== game.directedRowKey) {
     throw apiErrorFromInvalidMove(
@@ -1093,10 +1188,7 @@ async function submitDirectedPhysicalScore(
 
   await db
     .update(schema.games)
-    .set({
-      directedRowKey: null,
-      directorGamePlayerId: null,
-    })
+    .set(clearDirectedPlayUpdate())
     .where(eq(schema.games.id, gameId));
 
   const activeTurn = await getActiveTurnRow(gameId);
@@ -1148,12 +1240,22 @@ export async function submitPhysicalTurnScore(
 
   const { currentPlayer } = await assertCurrentPlayer(gameId, userId);
 
-  if (game.directedRowKey && game.directorGamePlayerId) {
-    return submitDirectedPhysicalScore(
-      gameId,
-      game,
-      currentPlayer.player.id,
-      input
+  if (hasPendingDirectedPlay(game)) {
+    const isExecutor = game.directedExecutorGamePlayerId
+      ? game.directedExecutorGamePlayerId === currentPlayer.player.id
+      : game.directorGamePlayerId !== currentPlayer.player.id;
+    if (isExecutor) {
+      return submitDirectedPhysicalScore(
+        gameId,
+        game,
+        currentPlayer.player.id,
+        input
+      );
+    }
+    throw new ApiError(
+      400,
+      "DIRECTED_PLAY_PENDING",
+      "Sačekaj da sledeći igrač završi dirigovani potez"
     );
   }
 

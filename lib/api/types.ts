@@ -33,6 +33,7 @@ export interface DirectedPlay {
   rowKey: FillableRowKey;
   directorGamePlayerId: string;
   directorDisplayName: string;
+  executorGamePlayerId: string;
 }
 
 export interface PlayerInfo {
