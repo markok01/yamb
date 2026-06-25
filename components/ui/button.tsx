@@ -11,18 +11,19 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variants: Record<Variant, string> = {
   primary:
-    "text-white shadow-md hover:opacity-95 [background:linear-gradient(135deg,color-mix(in_srgb,var(--y-accent)_82%,white),color-mix(in_srgb,var(--y-accent-secondary)_78%,white))] [box-shadow:0_6px_20px_-10px_var(--y-accent-glow)]",
+    "bg-[var(--y-accent)] text-white hover:brightness-[1.06] active:brightness-[0.96] shadow-[var(--y-shadow-sm)]",
   secondary:
-    "y-surface-elevated text-[var(--y-text)] hover:bg-[var(--y-surface-hover)] border border-[var(--y-border)]",
-  ghost: "text-[var(--y-text-muted)] hover:bg-[var(--y-surface-hover)] hover:text-[var(--y-text)]",
+    "y-surface-elevated text-[var(--y-text)] hover:bg-[var(--y-surface-hover)] border border-[var(--y-border)] shadow-[var(--y-shadow-sm)]",
+  ghost:
+    "text-[var(--y-text-muted)] hover:bg-[var(--y-surface-hover)] hover:text-[var(--y-text)]",
   danger:
-    "bg-[color-mix(in_srgb,var(--y-danger)_15%,transparent)] text-[var(--y-danger)] border border-[color-mix(in_srgb,var(--y-danger)_30%,transparent)] hover:bg-[color-mix(in_srgb,var(--y-danger)_25%,transparent)]",
+    "bg-[color-mix(in_srgb,var(--y-danger)_12%,transparent)] text-[var(--y-danger)] border border-[color-mix(in_srgb,var(--y-danger)_25%,transparent)] hover:bg-[color-mix(in_srgb,var(--y-danger)_18%,transparent)]",
 };
 
 const sizes: Record<Size, string> = {
   sm: "px-3 py-1.5 text-xs rounded-lg",
-  md: "px-4 py-2.5 text-sm rounded-xl",
-  lg: "px-6 py-3 text-base rounded-xl",
+  md: "px-4 py-2 text-sm rounded-[10px]",
+  lg: "px-5 py-2.5 text-[15px] rounded-[10px]",
 };
 
 export function Button({
@@ -39,8 +40,8 @@ export function Button({
       type="button"
       disabled={disabled}
       className={cn(
-        "inline-flex items-center justify-center font-semibold transition-all duration-200 ease-out",
-        "disabled:cursor-not-allowed disabled:opacity-50",
+        "inline-flex items-center justify-center font-medium transition-all duration-150 ease-[cubic-bezier(0.25,0.1,0.25,1)]",
+        "disabled:cursor-not-allowed disabled:opacity-45",
         variants[variant],
         sizes[size],
         fullWidth && "w-full",

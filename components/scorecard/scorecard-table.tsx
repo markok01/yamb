@@ -589,14 +589,9 @@ export function ScorecardTable(props: ScorecardTableProps) {
                         turn?.najavaRowKey === row &&
                         !isEmpty;
                       const isDirectedTarget = ui.status === "directed-target";
+                      const isNajavaSelect = ui.status === "najava-select";
                       const isClickableTarget =
                         !readOnly && isInteractive && ui.allowed;
-                      const showPulse =
-                        showPlayHints &&
-                        (ui.allowed || isDirectedTarget) &&
-                        isInteractive &&
-                        isEmpty &&
-                        !readOnly;
                       const showDisabled =
                         isInteractive &&
                         isMyTurn &&
@@ -622,11 +617,9 @@ export function ScorecardTable(props: ScorecardTableProps) {
                           key={`${col.columnType}-${row}`}
                           className={[
                             "relative px-1 py-1 text-center tabular-nums",
-                            isActiveCol && isEmpty
-                              ? "scorecard-cell-active"
-                              : crossHighlight
-                                ? "scorecard-cell-hover"
-                                : "scorecard-cell",
+                            crossHighlight
+                              ? "scorecard-cell-hover"
+                              : "scorecard-cell",
                             isEditing ? "scorecard-cell-active" : "",
                             isClickableTarget && !isEditing
                               ? "cursor-pointer"
@@ -635,7 +628,9 @@ export function ScorecardTable(props: ScorecardTableProps) {
                                 : readOnly
                                   ? "cursor-default"
                                   : "cursor-default",
-                            showPulse && !isEditing ? "scorecard-cell-pulse" : "",
+                            isNajavaSelect && !isEditing
+                              ? "scorecard-cell-pulse"
+                              : "",
                             isDirectedTarget && !isEditing
                               ? "scorecard-cell-directed"
                               : "",
@@ -683,14 +678,6 @@ export function ScorecardTable(props: ScorecardTableProps) {
                             <span className="scorecard-value-filled inline-block font-bold">
                               {value}
                             </span>
-                          ) : showPulse ? (
-                            <span
-                              className="inline-block h-2 w-2 rounded-full"
-                              style={{
-                                background: "var(--sc-accent)",
-                                boxShadow: "0 0 8px var(--y-accent-glow)",
-                              }}
-                            />
                           ) : null}
                           {isNajavaLocked && (
                             <span

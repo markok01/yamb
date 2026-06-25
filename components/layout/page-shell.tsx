@@ -41,12 +41,12 @@ export function PageShell({
         {(title || subtitle) && (
           <header className="mb-8">
             {title && (
-              <h1 className="text-3xl font-black tracking-tight text-[var(--y-text)]">
+              <h1 className="text-[22px] font-semibold tracking-tight text-[var(--y-text)]">
                 {title}
               </h1>
             )}
             {subtitle && (
-              <p className="mt-2 text-[var(--y-text-muted)]">{subtitle}</p>
+              <p className="mt-1.5 text-[15px] text-[var(--y-text-muted)]">{subtitle}</p>
             )}
           </header>
         )}

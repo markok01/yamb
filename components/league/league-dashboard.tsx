@@ -12,7 +12,7 @@ import {
 import { GlassPanel } from "@/components/ui/glass-panel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/ui/cn";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { ApiClientError } from "@/lib/api/client";
 import { LEAGUE_STATUS_LABEL, LEAGUE_TABS, type LeagueTab } from "./league-utils";
 import { LeagueOverviewTab } from "./league-overview-tab";
@@ -74,7 +74,7 @@ export function LeagueDashboard({
                 className="h-16 w-16 shrink-0 rounded-2xl object-cover"
               />
             ) : (
-              <div className="y-brand-gradient flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl text-2xl font-black">
+              <div className="y-brand-gradient flex h-14 w-14 shrink-0 items-center justify-center rounded-xl text-xl font-semibold">
                 {league.name.charAt(0)}
               </div>
             )}
@@ -85,7 +85,7 @@ export function LeagueDashboard({
                 </Badge>
                 <Badge variant="default">Sezona {league.season}</Badge>
               </div>
-              <h1 className="text-2xl font-black text-[var(--y-text)] sm:text-3xl">
+              <h1 className="text-[22px] font-semibold text-[var(--y-text)] sm:text-2xl">
                 {league.name}
               </h1>
               <p className="mt-1 text-sm text-[var(--y-text-muted)]">
@@ -102,23 +102,12 @@ export function LeagueDashboard({
         {joinError && <p className="mt-3 text-sm text-red-400">{joinError}</p>}
       </GlassPanel>
 
-      <div className="flex gap-1 overflow-x-auto pb-1">
-        {visibleTabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setTab(t.id)}
-            className={cn(
-              "shrink-0 rounded-xl px-4 py-2 text-sm font-semibold transition",
-              tab === t.id
-                ? "y-nav-active"
-                : "text-[var(--y-text-muted)] hover:bg-[var(--y-surface-hover)]"
-            )}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        options={visibleTabs.map((t) => ({ id: t.id, label: t.label }))}
+        value={tab}
+        onChange={setTab}
+        className="w-full sm:w-auto"
+      />
 
       {tab === "overview" && (
         <LeagueOverviewTab league={league} notifications={notifData?.notifications} />

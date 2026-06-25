@@ -10,8 +10,8 @@ interface StatCardProps {
 }
 
 const accentMap = {
-  primary: "y-accent-text",
-  secondary: "y-accent-secondary-text",
+  primary: "text-[var(--y-accent)]",
+  secondary: "text-[var(--y-accent-secondary)]",
   warm: "text-[var(--y-warning)]",
 };
 
@@ -24,10 +24,8 @@ export function StatCard({
 }: StatCardProps) {
   return (
     <GlassPanel padding="sm" className={cn("text-center", className)}>
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--y-text-muted)]">
-        {label}
-      </p>
-      <p className={cn("mt-1 text-2xl font-black tabular-nums", accentMap[accent])}>
+      <p className="text-[11px] font-medium text-[var(--y-text-muted)]">{label}</p>
+      <p className={cn("mt-1 text-xl font-semibold tabular-nums", accentMap[accent])}>
         {value}
       </p>
       {sub && <p className="mt-0.5 text-xs text-[var(--y-text-muted)]">{sub}</p>}

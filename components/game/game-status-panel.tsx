@@ -32,9 +32,9 @@ export function GameStatusBar({
         : "default";
 
   return (
-    <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--y-border)] bg-[var(--y-surface)] px-4 py-3 backdrop-blur-md">
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--y-border)] bg-[var(--y-surface-elevated)] px-4 py-2.5 shadow-[var(--y-shadow-sm)]">
       <div className="flex flex-wrap items-center gap-3">
-        <span className="font-mono text-lg font-bold tracking-widest text-[var(--y-text)]">
+        <span className="font-mono text-[15px] font-semibold tracking-wide text-[var(--y-text)]">
           {roomCode}
         </span>
         <Badge variant={statusVariant}>{gameStatusLabel(status)}</Badge>
@@ -47,7 +47,7 @@ export function GameStatusBar({
             <span
               className={
                 isMyTurn
-                  ? "font-bold text-[var(--y-accent)]"
+                  ? "font-medium text-[var(--y-accent)]"
                   : "font-medium text-[var(--y-text)]"
               }
             >
@@ -75,7 +75,7 @@ interface GameStatusPanelProps {
 export function GameStatusPanel({ hints, error }: GameStatusPanelProps) {
   return (
     <GlassPanel padding="sm" glow="accent" className="space-y-3">
-      <h3 className="text-xs font-semibold uppercase tracking-widest text-[var(--y-text-muted)]">
+      <h3 className="text-[11px] font-medium text-[var(--y-text-muted)]">
         Status igre
       </h3>
       {error && (

@@ -103,13 +103,13 @@ export default function LobbyPage() {
     <PageShell maxWidth="6xl">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <Badge variant="live" pulse className="mb-3">
+          <Badge variant="live" className="mb-3">
             Hol · Spreman za igru
           </Badge>
-          <h1 className="text-4xl font-black tracking-tight text-[var(--y-text)]">
+          <h1 className="text-[28px] font-semibold tracking-tight text-[var(--y-text)]">
             Jamb arena
           </h1>
-          <p className="mt-2 max-w-lg text-[var(--y-text-muted)]">
+          <p className="mt-1.5 max-w-lg text-[15px] text-[var(--y-text-muted)]">
             Kreiraj sobu, pozovi prijatelje i igraj premium digitalni Jamb.
           </p>
         </div>
@@ -124,8 +124,8 @@ export default function LobbyPage() {
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           {/* Create game */}
-          <GlassPanel glow="accent">
-            <h2 className="mb-4 text-lg font-bold text-[var(--y-text)]">
+          <GlassPanel>
+            <h2 className="mb-4 text-[17px] font-semibold text-[var(--y-text)]">
               Kreiraj partiju
             </h2>
 

@@ -98,7 +98,8 @@ export function ScorecardMobile({
               openCol === col.columnType
                 ? "scorecard-mobile-tabs-active"
                 : "scorecard-mobile-tabs-inactive hover:opacity-80",
-              activeColumnType === col.columnType && ctx.showPlayHints !== false
+              activeColumnType === col.columnType &&
+                (ctx.najavaMode || ctx.isDirectedExecutor)
                 ? "scorecard-cell-pulse"
                 : "",
             ].join(" ")}
@@ -131,6 +132,8 @@ export function ScorecardMobile({
             }
 
             const ui = getCellUiState(column, scorecard.columns, row, ctx);
+            const isDirectedTarget = ui.status === "directed-target";
+            const isNajavaSelect = ui.status === "najava-select";
             const isNajavaLocked =
               openCol === "NAJAVA" && turn?.najavaRowKey === row && value;
             const isEditing =
@@ -174,17 +177,21 @@ export function ScorecardMobile({
                     disabled={!ui.allowed}
                     className={[
                       "flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm",
-                      ui.allowed && ctx.showPlayHints !== false
-                        ? "scorecard-cell-pulse"
-                        : "",
+                      isDirectedTarget ? "scorecard-cell-directed" : "",
+                      isNajavaSelect ? "scorecard-cell-pulse" : "",
                     ].join(" ")}
                     style={{
-                      background: ui.allowed
-                        ? "var(--sc-accent-soft)"
-                        : value
-                          ? "var(--y-surface-hover)"
-                          : "var(--y-surface)",
-                      color: ui.allowed ? "var(--sc-accent)" : "var(--sc-text)",
+                      background:
+                        isDirectedTarget || isNajavaSelect
+                          ? "var(--sc-accent-soft)"
+                          : value
+                            ? "var(--y-surface-hover)"
+                            : "var(--y-surface)",
+                      color: value
+                        ? "var(--sc-text)"
+                        : isDirectedTarget || isNajavaSelect
+                          ? "var(--sc-accent)"
+                          : "var(--sc-text-muted)",
                     }}
                   >
                     <span className="flex items-center gap-2">
@@ -192,7 +199,7 @@ export function ScorecardMobile({
                       {isNajavaLocked && <span className="text-xs">🔒</span>}
                     </span>
                     <span className="font-bold tabular-nums">
-                      {value || (ui.allowed ? "·" : "—")}
+                      {value || "—"}
                     </span>
                   </button>
                 )}

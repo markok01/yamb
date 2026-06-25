@@ -1,30 +1,27 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { PageShell } from "@/components/layout/page-shell";
 import { GlassPanel } from "@/components/ui/glass-panel";
 import { StatCard } from "@/components/ui/stat-card";
 import { useUserStats } from "@/hooks/use-game-queries";
-import { comboLabel } from "@/lib/ui/labels";
 import { useSessionStore } from "@/stores/session-store";
 
-const chartGrid = "color-mix(in srgb, var(--y-border) 80%, transparent)";
-const chartText = "#8a7f72";
-const chartSuccess = "#b8956a";
-const chartMuted = "#c4b5a8";
+const StatsCharts = dynamic(
+  () =>
+    import("@/components/stats/stats-charts").then((m) => m.StatsCharts),
+  {
+    ssr: false,
+    loading: () => (
+      <GlassPanel className="mb-6">
+        <p className="text-sm text-[var(--y-text-muted)]">Učitavanje grafikona…</p>
+      </GlassPanel>
+    ),
+  }
+);
 
 export default function StatsPage() {
   const router = useRouter();
@@ -41,23 +38,18 @@ export default function StatsPage() {
   const combinations = data?.combinations ?? [];
   const recentGames = data?.recentGames ?? [];
 
-  const comboChart = combinations.map((c) => ({
-    name: comboLabel(c.combination),
-    uspeh: c.countSuccess,
-    neuspeh: c.countFailed,
-  }));
-
-  const scoreChart = recentGames
-    .filter((g) => g.finalScore != null)
-    .reverse()
-    .map((g, i) => ({
-      partija: `#${i + 1}`,
-      skor: g.finalScore,
-    }));
-
   return (
     <PageShell title="Statistika" subtitle="Detaljni pregled učinka" maxWidth="4xl">
-      {isLoading && <p className="text-[var(--y-text-muted)]">Učitavanje...</p>}
+      {isLoading && (
+        <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-5">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-20 animate-pulse rounded-xl bg-[var(--y-surface-hover)]"
+            />
+          ))}
+        </div>
+      )}
 
       {stats && (
         <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-5">
@@ -69,60 +61,15 @@ export default function StatsPage() {
         </div>
       )}
 
-      {comboChart.length > 0 && (
-        <GlassPanel className="mb-6">
-          <h2 className="mb-4 font-bold text-[var(--y-text)]">Kombinacije</h2>
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={comboChart}>
-              <CartesianGrid stroke={chartGrid} strokeDasharray="3 3" />
-              <XAxis dataKey="name" tick={{ fill: chartText, fontSize: 12 }} />
-              <YAxis allowDecimals={false} tick={{ fill: chartText, fontSize: 12 }} />
-              <Tooltip
-                contentStyle={{
-                  background: "var(--y-surface-elevated)",
-                  border: "1px solid var(--y-border)",
-                  borderRadius: 12,
-                  color: "var(--y-text)",
-                }}
-              />
-              <Bar dataKey="uspeh" fill={chartSuccess} name="Uspeh" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="neuspeh" fill={chartMuted} name="Neuspeh" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </GlassPanel>
-      )}
-
-      {scoreChart.length > 0 && (
-        <GlassPanel className="mb-6">
-          <h2 className="mb-4 font-bold text-[var(--y-text)]">Trend skorova</h2>
-          <ResponsiveContainer width="100%" height={240}>
-            <LineChart data={scoreChart}>
-              <CartesianGrid stroke={chartGrid} strokeDasharray="3 3" />
-              <XAxis dataKey="partija" tick={{ fill: chartText, fontSize: 12 }} />
-              <YAxis tick={{ fill: chartText, fontSize: 12 }} />
-              <Tooltip
-                contentStyle={{
-                  background: "var(--y-surface-elevated)",
-                  border: "1px solid var(--y-border)",
-                  borderRadius: 12,
-                  color: "var(--y-text)",
-                }}
-              />
-              <Line
-                type="monotone"
-                dataKey="skor"
-                stroke={chartSuccess}
-                strokeWidth={2}
-                dot={{ fill: chartSuccess }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </GlassPanel>
+      {!isLoading && (combinations.length > 0 || recentGames.length > 0) && (
+        <StatsCharts combinations={combinations} recentGames={recentGames} />
       )}
 
       {recentGames.length > 0 && (
         <GlassPanel>
-          <h2 className="mb-4 font-bold text-[var(--y-text)]">Poslednje partije</h2>
+          <h2 className="mb-4 text-[17px] font-semibold text-[var(--y-text)]">
+            Poslednje partije
+          </h2>
           <ul className="divide-y divide-[var(--y-border)]">
             {recentGames.map((g) => (
               <li
@@ -131,11 +78,11 @@ export default function StatsPage() {
               >
                 <Link
                   href={`/history/${g.gameId}`}
-                  className="font-mono font-bold text-[var(--y-text)] transition hover:text-[var(--y-accent)]"
+                  className="font-mono font-medium text-[var(--y-text)] transition hover:text-[var(--y-accent)]"
                 >
                   {g.roomCode}
                 </Link>
-                <span className="tabular-nums y-accent-text">
+                <span className="tabular-nums text-[var(--y-accent)]">
                   {g.finalScore ?? "—"} · #{g.placement ?? "—"}
                 </span>
               </li>
